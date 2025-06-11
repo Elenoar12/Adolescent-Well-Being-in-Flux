@@ -268,77 +268,7 @@ generate_map <- function(variable, year) {
     )
 }
 
-create_radarchart <- function(cprob, color = "red", 
-                              vlabels = colnames(data), vlcex = 1,
-                              caxislabels = NULL, title = NULL, ...){
-  
-  cprob <- read.csv(cprob)
-  
-  # Make sure class variable is a factor
-  cprob$C <- as.factor(cprob$C)
-  
-  # Identify the most frequent profile
-  most_frequent_profile <- names(sort(table(cprob$C), decreasing = TRUE))[1]
-  
-  # Relevel so the most frequent is first (reference level)
-  cprob$C <- relevel(cprob$C, ref = most_frequent_profile)
-  
-  # Group by class and calculate means
-  spider_df <- cprob %>%
-    group_by(C) %>%
-    summarise(across(c(PHY, SLE, UND, SM, ALC), mean, na.rm = TRUE), .groups = "drop")
-  
-  # Ensure rows are ordered according to factor levels (Class 1 = most frequent)
-  spider_df <- spider_df %>%
-    mutate(C = factor(C, levels = levels(cprob$C))) %>%
-    arrange(C)
-  
-  # Global min and max across all numeric columns
-  global_max <- max(as.matrix(spider_df[, -1]))
-  global_min <- min(as.matrix(spider_df[, -1]))
-  
-  if (is.null(caxislabels)) {
-    caxislabels <- round(seq(global_min, global_max, length.out = 5), digits = 3)
-  }
-  
-  # Create max and min rows
-  max_row <- spider_df[1, ]
-  max_row[1, ] <- NA
-  max_row[1, -1] <- global_max
-  
-  min_row <- spider_df[1, ]
-  min_row[1, ] <- NA
-  min_row[1, -1] <- global_min
-  
-  # Add max and min rows, then set row names
-  radar_data <- as.data.frame(rbind(max_row, min_row, spider_df))
-  rownames(radar_data) <- c("Max", "Min", paste0("Class ", spider_df$C))
-  radar_data$C <- NULL
-  
-  radarchart(
-    radar_data, axistype = 1,
-    # Customize the polygon
-    pcol = color, pfcol = scales::alpha(color, 0.2), plwd = 2, plty = 1,
-    # Customize the grid
-    cglcol = "grey", cglty = 1, cglwd = 0.8,
-    # Customize the axis
-    axislabcol = "grey", 
-    # Variable labels
-    vlcex = vlcex, vlabels = vlabels,
-    caxislabels = caxislabels, title = title, ...
-  )
-  
-  legend(
-    x = "topright",
-    legend = paste0("Class ", spider_df$C), 
-    col = color, 
-    lty = 1, 
-    lwd = 2,
-    bty = "n"
-  )
-}
-
-### Integrate labelling process to save disk space
+### Integrated labelling process to save disk space
 hbsc_raw <- read.csv("data/hbsc_raw.csv")
 
 hbsc_mappings <- list(
@@ -525,14 +455,14 @@ create_histogram <- function(filtered_data, variable_name, title, order) {
     ) +
     theme_minimal() +
     theme(
-      plot.title = element_text(size = 16, face = "bold"),      # Increased from 10
-      plot.subtitle = element_text(size = 12),                  # Increased from 8
-      axis.text.x = element_text(angle = 45, hjust = 1, size = 12), # Increased from 8
-      axis.text.y = element_text(size = 12),                    # Increased from 8
-      axis.title = element_text(size = 14, face = "bold"),      # Increased from 9
-      axis.title.x = element_text(margin = margin(t = 10)),     # Add spacing
-      axis.title.y = element_text(margin = margin(r = 10)),     # Add spacing
-      plot.margin = margin(20, 20, 20, 20)                     # Add plot margins
+      plot.title = element_text(size = 16, face = "bold"),      
+      plot.subtitle = element_text(size = 12),                  
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 12), 
+      axis.text.y = element_text(size = 12),                    
+      axis.title = element_text(size = 14, face = "bold"),      
+      axis.title.x = element_text(margin = margin(t = 10)),     
+      axis.title.y = element_text(margin = margin(r = 10)),     
+      plot.margin = margin(20, 20, 20, 20)                     
     )
   
   return(p)
@@ -709,6 +639,299 @@ desc_histograms <- function(data, countryname = NULL, surveyyear = NULL, variabl
   
 }
 
+### LPA panel data processing
+
+# Function to create LPA line plot
+create_lpa_plot <- function(input_country, input_year) {
+  
+  # Construct file paths
+  mplus_folder_path <- paste0("data/LPA/", input_country)
+  # Find the .out file in the directory automatically
+  out_files <- list.files(mplus_folder_path, pattern = "\\.out$", full.names = TRUE)
+  
+  if (length(out_files) == 0) {
+    stop("No .out files found in ", mplus_folder_path)
+  } else if (length(out_files) > 1) {
+    cat("Multiple .out files found. Specify output_enum[['key']] else the first one will be taken.", basename(out_files[1]), "\n")
+  }
+  
+  mplus_output_path <- out_files[1]
+  
+  tryCatch({
+    # Load the Mplus output containing the parameters
+    allModelParameters <- readModels(mplus_output_path, what = "parameters")$parameters
+    
+    # Navigate to the unstandardized parameters
+    unstandardized_params <- allModelParameters$unstandardized
+    
+    # Filter to only get the "Means" estimates for all latent classes
+    means_estimates <- unstandardized_params[unstandardized_params$paramHeader == "Means", ]
+    
+    # Prepare a dataframe for easier manipulation or plotting
+    means_df <- data.frame(
+      Variable = means_estimates$param,
+      LatentClass = means_estimates$LatentClass,
+      Estimate = means_estimates$est,
+      SE = means_estimates$se,
+      PValue = means_estimates$pval
+    )
+    
+    # Filter out the rows related to the categorical latent variables (C#1, C#2, C#3)
+    means_df_filtered <- means_df[!means_df$Variable %in% c("C#1", "C#2", "C#3"), ]
+    
+    # Load the Mplus output to get class proportions
+    output_enum <- readModels(mplus_folder_path)
+    
+    # Function to extract class proportions
+    extract_class_proportions <- function(output) {
+      if (!is.null(output$class_counts$modelEstimated$proportion)) {
+        class_proportions <- as.data.frame(output$class_counts$modelEstimated$proportion)
+        colnames(class_proportions) <- "Proportion"
+        class_proportions$Proportion <- round(class_proportions$Proportion * 100, 1)  # Convert to percentage
+        return(class_proportions)
+      } else {
+        stop("Class proportions not found in the output.")
+      }
+    }
+    
+    # Extract the class proportions
+    class_proportions <- extract_class_proportions(output_enum) # needs indexing [["switzerland_c4.out"]] if not decidedly 4 profile solution 
+    
+    # Merge the means and class proportions into one dataframe for easier plotting
+    # Assuming each class has 5 variables
+    means_df_filtered$Proportion <- rep(class_proportions$Proportion, each = 5)
+    
+    # Relabel the Variable column
+    means_df_filtered$Variable <- factor(means_df_filtered$Variable,
+                                         levels = c("PHY", "SLE", "UND", "SM", "ALC"),
+                                         labels = c("Physical Inactivity", "Sleep Problems", "Undietary Behavior", "Smoking", "Alcohol"))
+    
+    # Reshape the data to long format for plotting
+    means_long <- melt(means_df_filtered, id.vars = c("Variable", "LatentClass"),
+                       measure.vars = "Estimate")
+    
+    # Create labels with class proportions for each latent class
+    class_labels <- paste0("Profile ", 1:4, " (", class_proportions$Proportion, "%)")
+    
+    # Create the plot with ggplot2
+    plot <- ggplot(means_long, aes(x = Variable, y = value, group = LatentClass,
+                                   color = LatentClass, linetype = LatentClass, shape = LatentClass)) +
+      geom_point(size = 4) +
+      geom_line() +
+      labs(
+        title = paste0("Latent Profile Analysis ", input_country, ", 4 Profiles"),
+        x = "Health Behaviors",
+        y = "Means",
+        color = "Latent Class",
+        linetype = "Latent Class",
+        shape = "Latent Class"
+      ) +
+      scale_y_continuous(limits = c(-1, 7)) +
+      scale_color_manual(values = c("#482173", "#2e6f8e", "#29af7f", "#bddf26"), labels = class_labels) +
+      scale_linetype_manual(values = c("solid", "dashed", "dotted", "dotdash"), labels = class_labels) +
+      scale_shape_manual(values = c(16, 17, 15, 18), labels = class_labels) +
+      theme_minimal() +
+      theme(
+        title = element_text(size = 14),
+        text = element_text(size = 12),
+        axis.title.x = element_text(size = 14, margin = margin(t = 10)),
+        axis.title.y = element_text(size = 14, margin = margin(r = 10)),
+        axis.text.x = element_text(size = 12), 
+        axis.text.y = element_text(size = 12),
+        legend.key.width = unit(.5, "line"),
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 12),
+        legend.position = "top"
+        )
+    
+    return(plot)
+    
+  }, error = function(e) {
+    # Return an error plot if something goes wrong
+    ggplot() + 
+      annotate("text", x = 0.5, y = 0.5, label = paste("Error loading data for", input_country, ":", e$message)) +
+      theme_void()
+  })
+}
+
+# Function to create multinomial regression plot
+create_multinomial_plot <- function(input_country, input_year) {
+  
+  # Construct file path
+  file_path <- paste0("data/Regression/", input_country, "/", input_country, "_all_multinom_profile~age+sex+ses.csv")
+  
+  tryCatch({
+    # Read the multinomial regression data
+    df_multinom <- read.csv(file_path)
+    
+    # Prepare data for plotting
+    df_plot <- df_multinom %>%
+      filter(term != "(Intercept)") %>%  # exclude intercepts
+      mutate(
+        Profile = paste("Profile", y.level, "vs low risk Profile"),
+        term = factor(term, levels = unique(term))
+      )
+    
+    # Create the plot
+    plot <- ggplot(df_plot, aes(x = odds_ratio, y = term)) +
+      geom_point(aes(color = Profile), shape = 18, size = 3) +
+      geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, color = Profile), height = 0.2) +
+      geom_text(aes(label = sprintf("OR = %.2f", odds_ratio), x = odds_ratio),
+                size = 3.5, hjust = 0.46, vjust = 4, color = "black") +  
+      theme_minimal() +
+      labs(title = paste("Multinomial Regression: Odds Ratios by Profile -", input_country),
+           x = "Estimate (Odds Ratio, 95% CI)", y = "") +
+      geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
+      facet_wrap(~ Profile) +
+      theme(panel.border = element_rect(color = "black", fill = NA, size = .5),
+            plot.title = element_text(size = 16),
+            strip.text = element_text(size = 12),                  
+            axis.text.x = element_text(size = 12),
+            axis.title.x = element_text(size = 12, margin = margin(t = 10)),
+            axis.text.y = element_text(size = 12, margin = margin(r = 10)),
+            legend.title = element_text(size = 12),
+            legend.text = element_text(size = 12))
+    
+    return(plot)
+    
+  }, error = function(e) {
+    # Return an error plot if something goes wrong
+    ggplot() + 
+      annotate("text", x = 0.5, y = 0.5, label = paste("Error loading multinomial data for", input_country, ":", e$message)) +
+      theme_void()
+  })
+}
+
+# Function to create linear regression plot with interaction
+create_linear_plot_interaction <- function(input_country, input_year, outcome_variable) {
+  
+  # Construct file path (using the interaction model)
+  file_path <- paste0("data/Regression/", input_country, "/", input_country, "_all_reg_", outcome_variable, "_profile+age+sex+ses+profilexsex.csv")
+  
+  tryCatch({
+    # Read the linear regression data
+    df_linear <- read.csv(file_path)
+    
+    # Prepare data for plotting
+    df_plot <- df_linear %>%
+      filter(term != "(Intercept)") %>%  # exclude intercepts
+      mutate(
+        conf.low = estimate - 1.96 * std.error,
+        conf.high = estimate + 1.96 * std.error,
+        term = factor(term, levels = unique(term)),
+        significant = ifelse((conf.low > 0 & conf.high > 0) | (conf.low < 0 & conf.high < 0), 
+                             "Significant", "Non-significant")
+      )
+    
+    # Create the plot
+    plot <- ggplot(df_plot, aes(x = estimate, y = term)) +
+      geom_point(aes(color = significant), shape = 18, size = 3) +
+      geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, color = significant), height = 0.2) +
+      geom_text(aes(label = sprintf("Est = %.2f", estimate), x = estimate),
+                size = 3.5, hjust = 0.46, vjust = 2, color = "black") +
+      theme_minimal() +
+      labs(title = paste("With Interaction - Outcome Variable:", outcome_variable, "-", input_country),
+           x = "Estimate (Standardized Estimate, 95% CI)", y = "") +
+      geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
+      scale_color_manual(values = c("Significant" = "steelblue", "Non-significant" = "black")) +
+      theme(panel.border = element_rect(color = "black", fill = NA, size = .5),
+            plot.title = element_text(size = 12, face = "bold"),
+            legend.position = "bottom",
+            legend.text = element_text(size = 12),
+            axis.text.x = element_text(size = 12),
+            axis.title.x = element_text(size = 12, margin = margin(t = 10)),
+            axis.text.y = element_text(size = 12), margin = margin(t = 10)) +
+      guides(color = guide_legend(title = ""))
+    
+    return(plot)
+    
+  }, error = function(e) {
+    # Return an error plot if something goes wrong
+    ggplot() + 
+      annotate("text", x = 0.5, y = 0.5, label = paste("Error loading linear interaction data for", input_country, outcome_variable, ":", e$message)) +
+      theme_void()
+  })
+}
+
+# Function to create linear regression plot without interaction
+create_linear_plot_main <- function(input_country, input_year, outcome_variable) {
+  
+  # Construct file path (without interaction term)
+  file_path <- paste0("data/Regression/", input_country, "/", input_country, "_all_reg_", outcome_variable, "_profile.csv")
+  
+  tryCatch({
+    # Read the linear regression data
+    df_linear <- read.csv(file_path)
+    
+    # Prepare data for plotting
+    df_plot <- df_linear %>%
+      filter(term != "(Intercept)") %>%  # exclude intercepts
+      mutate(
+        conf.low = estimate - 1.96 * std.error,
+        conf.high = estimate + 1.96 * std.error,
+        term = factor(term, levels = unique(term)),
+        significant = ifelse((conf.low > 0 & conf.high > 0) | (conf.low < 0 & conf.high < 0), 
+                             "Significant", "Non-significant")
+      )
+    
+    # Create the plot
+    plot <- ggplot(df_plot, aes(x = estimate, y = term)) +
+      geom_point(aes(color = significant), shape = 18, size = 3) +
+      geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, color = significant), height = 0.2) +
+      geom_text(aes(label = sprintf("Est = %.2f", estimate), x = estimate),
+                size = 3.5, hjust = 0.46, vjust = 2, color = "black") +
+      theme_minimal() +
+      labs(title = paste("Main Effects - Outcome Variable:", outcome_variable, "-", input_country),
+           x = "Estimate (Standardized Estimate, 95% CI)", y = "") +
+      geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
+      scale_color_manual(values = c("Significant" = "steelblue", "Non-significant" = "black")) +
+      theme(panel.border = element_rect(color = "black", fill = NA, size = .5),
+            plot.title = element_text(size = 12, face = "bold"),
+            legend.position = "bottom",
+            legend.text = element_text(size = 12),
+            axis.text.x = element_text(size = 12),
+            axis.title.x = element_text(size = 12, margin = margin(t = 10)),
+            axis.text.y = element_text(size = 12), margin = margin(t = 10)) +
+      guides(color = guide_legend(title = ""))
+    
+    return(plot)
+    
+  }, error = function(e) {
+    # Return an error plot if something goes wrong
+    ggplot() + 
+      annotate("text", x = 0.5, y = 0.5, label = paste("Error loading linear main effects data for", input_country, outcome_variable, ":", e$message)) +
+      theme_void()
+  })
+}
+
+# Function to create all plots for a given country and year
+create_all_plots <- function(input_country, input_year) {
+  
+  # Create LPA plot
+  lpa_plot <- create_lpa_plot(input_country, input_year)
+  
+  # Create multinomial regression plot
+  multinomial_plot <- create_multinomial_plot(input_country, input_year)
+  
+  # Create linear regression plots for all outcomes (both main effects and interaction)
+  outcome_variables <- c("ache", "feeling", "health", "lifesat")
+  linear_plots_main <- list()
+  linear_plots_interaction <- list()
+  
+  for (outcome in outcome_variables) {
+    linear_plots_main[[outcome]] <- create_linear_plot_main(input_country, input_year, outcome)
+    linear_plots_interaction[[outcome]] <- create_linear_plot_interaction(input_country, input_year, outcome)
+  }
+  
+  # Return all plots as a list
+  return(list(
+    lpa_plot = lpa_plot,
+    multinomial_plot = multinomial_plot,
+    linear_plots_main = linear_plots_main,
+    linear_plots_interaction = linear_plots_interaction
+  ))
+}
+
 agecat_map <- c("11 y/o" = 1, "13 y/o" = 2, "15 y/o" = 3)
 
 country <- unique(hbsc$countryname)
@@ -771,10 +994,11 @@ ui <- fluidPage(
              # Descriptive Statistics Page
              tabPanel("Descriptive Statistics",
                       fluidPage(
+                        h3("Descriptive Statistics"),
+                        p("[PLACEHOLDER]"),
                         selectInput("country", "Select Country:",
                                     choices = c("", country),
                                     selected = "Switzerland"),
-                        h3("Descriptive Statistics"),
                         tags$div(style = "display: flex; flex-wrap: wrap;",
                                  tags$div(style = "flex: 0 0 auto; min-width: 300px; margin-right: 30px;",
                                           h4("Predictor Variables"),
@@ -853,21 +1077,86 @@ ui <- fluidPage(
              tabPanel("LPA",
                       fluidPage(
                         h3("Latent Profile Analysis"),
-                        sidebarLayout(
-                          sidebarPanel(
-                            selectInput("lpa_country", "Select Country:",
-                                        choices = c("", country),
-                                        selected = "Switzerland"),
-                            selectInput("lpa_year", "Select Survey Year:",
-                                        choices = c("All Years" = "", survey_years),
-                                        selected = "")
+                        tags$div(style = "display: flex; flex-wrap: wrap;",
+                                 tags$div(style = "flex: 0 0 auto; min-width: 300px; margin-right: 30px;",
+                                          selectInput("lpa_country", "Select Country:",
+                                             choices = c("", country),
+                                             selected = "Switzerland")
                           ),
-                          mainPanel(
-                            plotOutput("lpaSpiderPlot", width = "100%", height = "600px")
+                          tags$div(style = "flex: 0 0 auto; min-width: 250px;",
+                                   selectInput("lpa_year", "Select Survey Year:",
+                                             choices = c("All Years" = "", survey_years),
+                                             selected = "")
+                          )
+                        ),
+                        br(),
+                        
+                        # LPA and Multinomial plots first
+                        fluidRow(
+                          column(12,
+                                 plotOutput("lpa_plot", width = "100%", height = "600px")
+                          )
+                        ),
+                        br(),
+                        
+                        fluidRow(
+                          column(12,
+                                 plotOutput("multinomial_plot", width = "100%", height = "600px")
+                          )
+                        ),
+                        br(),
+                        
+                        # Linear regression plots in pairs
+                        h4("Linear Regression Results"),
+                        
+                        # Ache plots
+                        h5("Outcome Variable: Ache"),
+                        fluidRow(
+                          column(6,
+                                 plotOutput("ache_main_plot", width = "100%", height = "500px")
+                          ),
+                          column(6,
+                                 plotOutput("ache_interaction_plot", width = "100%", height = "500px")
+                          )
+                        ),
+                        br(),
+                        
+                        # Feeling plots
+                        h5("Outcome Variable: Feeling"),
+                        fluidRow(
+                          column(6,
+                                 plotOutput("feeling_main_plot", width = "100%", height = "500px")
+                          ),
+                          column(6,
+                                 plotOutput("feeling_interaction_plot", width = "100%", height = "500px")
+                          )
+                        ),
+                        br(),
+                        
+                        # Health plots
+                        h5("Outcome Variable: Health"),
+                        fluidRow(
+                          column(6,
+                                 plotOutput("health_main_plot", width = "100%", height = "500px")
+                          ),
+                          column(6,
+                                 plotOutput("health_interaction_plot", width = "100%", height = "500px")
+                          )
+                        ),
+                        br(),
+                        
+                        # Life Satisfaction plots
+                        h5("Outcome Variable: Life Satisfaction"),
+                        fluidRow(
+                          column(6,
+                                 plotOutput("lifesat_main_plot", width = "100%", height = "500px")
+                          ),
+                          column(6,
+                                 plotOutput("lifesat_interaction_plot", width = "100%", height = "500px")
                           )
                         )
                       )
-             ),
+                    ),
              
              # About Page
              tabPanel("About",
@@ -1183,36 +1472,66 @@ server <- function(input, output, session) {
   })
   
   ### LPA Analysis and Regression
-  # LPA Spider Plot
-  output$lpaSpiderPlot <- renderPlot({
+  
+  # Generate all plots when country or year changes
+  all_plots <- reactive({
     req(input$lpa_country != "")  # Wait until a country is selected
     
-    # Dynamically build path
-    if (input$lpa_year == "") {
-      cprob_path <- file.path(
-        "C:/Users/hanst/OneDrive - Universität Zürich UZH/Datenanalyse",
-        input$lpa_country,
-        paste0("c_prob_", input$lpa_country, "_C4.csv")
-      )
-    } else {
-      cprob_path <- file.path(
-        "C:/Users/hanst/OneDrive - Universität Zürich UZH/Datenanalyse",
-        input$lpa_country,
-        paste0("SurveyYear_", input$lpa_year),
-        paste0("c_prob_", input$lpa_country, "_", input$lpa_year, "_C4.csv")
-      )
-    }
-    
-    # Optional: check file existence
-    if (!file.exists(cprob_path)) {
-      showNotification("Data file not found.", type = "error")
-      return(NULL)
-    }
-    
-    # Read and plot radar chart
-    create_radarchart(cprob_path,
-                      color = c("red", "blue", "green", "purple"),
-                      title = paste("Latent Classes -", input$lpa_country, input$lpa_year))
+    create_all_plots(input$lpa_country, input$lpa_year)
+  })
+  
+  # LPA Plot
+  output$lpa_plot <- renderPlot({
+    plots <- all_plots()
+    plots$lpa_plot
+  })
+  
+  # Multinomial Regression Plot
+  output$multinomial_plot <- renderPlot({
+    plots <- all_plots()
+    plots$multinomial_plot
+  })
+  
+  # Linear Regression Plots - Main Effects
+  output$ache_main_plot <- renderPlot({
+    plots <- all_plots()
+    plots$linear_plots_main$ache
+  })
+  
+  output$feeling_main_plot <- renderPlot({
+    plots <- all_plots()
+    plots$linear_plots_main$feeling
+  })
+  
+  output$health_main_plot <- renderPlot({
+    plots <- all_plots()
+    plots$linear_plots_main$health
+  })
+  
+  output$lifesat_main_plot <- renderPlot({
+    plots <- all_plots()
+    plots$linear_plots_main$lifesat
+  })
+  
+  # Linear Regression Plots - With Interaction
+  output$ache_interaction_plot <- renderPlot({
+    plots <- all_plots()
+    plots$linear_plots_interaction$ache
+  })
+  
+  output$feeling_interaction_plot <- renderPlot({
+    plots <- all_plots()
+    plots$linear_plots_interaction$feeling
+  })
+  
+  output$health_interaction_plot <- renderPlot({
+    plots <- all_plots()
+    plots$linear_plots_interaction$health
+  })
+  
+  output$lifesat_interaction_plot <- renderPlot({
+    plots <- all_plots()
+    plots$linear_plots_interaction$lifesat
   })
   
 }

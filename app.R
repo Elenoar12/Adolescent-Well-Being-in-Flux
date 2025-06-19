@@ -232,7 +232,7 @@ generate_map <- function(variable, year) {
             zoomControlPosition = "topleft"
           )) %>%
     addProviderTiles(providers$CartoDB.PositronNoLabels) %>%
-    setView(lng = -30, lat = 45, zoom = 4) %>%  # Updated view over Atlantic Ocean
+    setView(lng = -30, lat = 45, zoom = 3) %>%  # Updated view over Atlantic Ocean
     addPolygons(
       fillColor = ~pal(clamped_values),
       weight = 1,
@@ -264,6 +264,7 @@ generate_map <- function(variable, year) {
       pal = pal,
       values = legend_range,
       title = paste("Average", variable, "z-Score"),
+      
       opacity = 1
     )
 }
@@ -642,76 +643,33 @@ desc_histograms <- function(data, countryname = NULL, surveyyear = NULL, variabl
 ### LPA panel data processing
 
 # Function to create LPA line plot
-create_lpa_plot <- function(input_country, input_year) {
+create_lpa_plot <- function(input_country, input_year = NULL) {
   
   # Construct file paths
-  mplus_folder_path <- paste0("data/LPA/", input_country)
-  # Find the .out file in the directory automatically
-  out_files <- list.files(mplus_folder_path, pattern = "\\.out$", full.names = TRUE)
-  
-  if (length(out_files) == 0) {
-    stop("No .out files found in ", mplus_folder_path)
-  } else if (length(out_files) > 1) {
-    cat("Multiple .out files found. Specify output_enum[['key']] else the first one will be taken.", basename(out_files[1]), "\n")
+  if (!is.null(input_year) && input_year != "") {
+    mplus_folder_path <- paste0("data/LPA/", input_country, "/",  input_year)
+    csv_filename <- paste0(tolower(input_country), "_", input_year, "_c4.csv")
+  } else {
+    mplus_folder_path <- paste0("data/LPA/", input_country)
+    csv_filename <- paste0(tolower(input_country), "_c4.csv")
   }
   
-  mplus_output_path <- out_files[1]
+  csv_filepath <- file.path(mplus_folder_path, csv_filename)
   
   tryCatch({
-    # Load the Mplus output containing the parameters
-    allModelParameters <- readModels(mplus_output_path, what = "parameters")$parameters
+    # Read the CSV file directly
+    means_df_filtered <- read.csv(csv_filepath)
     
-    # Navigate to the unstandardized parameters
-    unstandardized_params <- allModelParameters$unstandardized
-    
-    # Filter to only get the "Means" estimates for all latent classes
-    means_estimates <- unstandardized_params[unstandardized_params$paramHeader == "Means", ]
-    
-    # Prepare a dataframe for easier manipulation or plotting
-    means_df <- data.frame(
-      Variable = means_estimates$param,
-      LatentClass = means_estimates$LatentClass,
-      Estimate = means_estimates$est,
-      SE = means_estimates$se,
-      PValue = means_estimates$pval
-    )
-    
-    # Filter out the rows related to the categorical latent variables (C#1, C#2, C#3)
-    means_df_filtered <- means_df[!means_df$Variable %in% c("C#1", "C#2", "C#3"), ]
-    
-    # Load the Mplus output to get class proportions
-    output_enum <- readModels(mplus_folder_path)
-    
-    # Function to extract class proportions
-    extract_class_proportions <- function(output) {
-      if (!is.null(output$class_counts$modelEstimated$proportion)) {
-        class_proportions <- as.data.frame(output$class_counts$modelEstimated$proportion)
-        colnames(class_proportions) <- "Proportion"
-        class_proportions$Proportion <- round(class_proportions$Proportion * 100, 1)  # Convert to percentage
-        return(class_proportions)
-      } else {
-        stop("Class proportions not found in the output.")
-      }
-    }
-    
-    # Extract the class proportions
-    class_proportions <- extract_class_proportions(output_enum) # needs indexing [["switzerland_c4.out"]] if not decidedly 4 profile solution 
-    
-    # Merge the means and class proportions into one dataframe for easier plotting
-    # Assuming each class has 5 variables
-    means_df_filtered$Proportion <- rep(class_proportions$Proportion, each = 5)
-    
-    # Relabel the Variable column
-    means_df_filtered$Variable <- factor(means_df_filtered$Variable,
-                                         levels = c("PHY", "SLE", "UND", "SM", "ALC"),
-                                         labels = c("Physical Inactivity", "Sleep Problems", "Undietary Behavior", "Smoking", "Alcohol"))
+    # Convert LatentClass to factor
+    means_df_filtered$LatentClass <- factor(means_df_filtered$LatentClass,
+                                            levels = c(1, 2, 3, 4))
     
     # Reshape the data to long format for plotting
     means_long <- melt(means_df_filtered, id.vars = c("Variable", "LatentClass"),
                        measure.vars = "Estimate")
     
     # Create labels with class proportions for each latent class
-    class_labels <- paste0("Profile ", 1:4, " (", class_proportions$Proportion, "%)")
+    class_labels <- paste0("Profile ", 1:4, " (", unique(means_df_filtered$Proportion), "%)")
     
     # Create the plot with ggplot2
     plot <- ggplot(means_long, aes(x = Variable, y = value, group = LatentClass,
@@ -719,7 +677,9 @@ create_lpa_plot <- function(input_country, input_year) {
       geom_point(size = 4) +
       geom_line() +
       labs(
-        title = paste0("Latent Profile Analysis ", input_country, ", 4 Profiles"),
+        title = paste0("Latent Profile Analysis ", input_country, 
+                       ifelse(!is.null(input_year) && input_year != "", paste0(" ", input_year), ""), 
+                       ", 4 Profiles"),
         x = "Health Behaviors",
         y = "Means",
         color = "Latent Class",
@@ -742,7 +702,7 @@ create_lpa_plot <- function(input_country, input_year) {
         legend.text = element_text(size = 12),
         legend.title = element_text(size = 12),
         legend.position = "top"
-        )
+      )
     
     return(plot)
     
@@ -755,10 +715,16 @@ create_lpa_plot <- function(input_country, input_year) {
 }
 
 # Function to create multinomial regression plot
-create_multinomial_plot <- function(input_country, input_year) {
+create_multinomial_plot <- function(input_country, input_year = NULL) {
   
-  # Construct file path
-  file_path <- paste0("data/Regression/", input_country, "/", input_country, "_all_multinom_profile~age+sex+ses.csv")
+  # Construct file paths
+  if (!is.null(input_year) && input_year != "") {
+    file_path <- file.path("data", "Regression", input_country, paste0("SurveyYear_", input_year), 
+                           paste0(input_country, "_", input_year, "_multinom_profile~age+sex+ses.csv"))
+  } else {
+    file_path <- file.path("data", "Regression", input_country, 
+                           paste0(input_country, "_all_multinom_profile~age+sex+ses.csv"))
+  }
   
   tryCatch({
     # Read the multinomial regression data
@@ -779,7 +745,8 @@ create_multinomial_plot <- function(input_country, input_year) {
       geom_text(aes(label = sprintf("OR = %.2f", odds_ratio), x = odds_ratio),
                 size = 3.5, hjust = 0.46, vjust = 4, color = "black") +  
       theme_minimal() +
-      labs(title = paste("Multinomial Regression: Odds Ratios by Profile -", input_country),
+      labs(title = paste("Multinomial Regression: Odds Ratios by Profile -", input_country,
+                         ifelse(!is.null(input_year) && input_year != "", paste0(" ", input_year), "")),
            x = "Estimate (Odds Ratio, 95% CI)", y = "") +
       geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
       facet_wrap(~ Profile) +
@@ -803,10 +770,14 @@ create_multinomial_plot <- function(input_country, input_year) {
 }
 
 # Function to create linear regression plot with interaction
-create_linear_plot_interaction <- function(input_country, input_year, outcome_variable) {
+create_linear_plot_interaction <- function(input_country, input_year = NULL, outcome_variable) {
   
-  # Construct file path (using the interaction model)
-  file_path <- paste0("data/Regression/", input_country, "/", input_country, "_all_reg_", outcome_variable, "_profile+age+sex+ses+profilexsex.csv")
+  # Construct file paths
+  if (!is.null(input_year) && input_year != "") {
+    file_path <- paste0("data/Regression/", input_country, "/", "SurveyYear_", input_year, "/", input_country, "_", input_year, "_reg_", outcome_variable,  "_profile+age+sex+ses+profilexsex.csv")
+  } else {
+    file_path <- paste0("data/Regression/", input_country, "/", input_country, "_all_reg_", outcome_variable, "_profile+age+sex+ses+profilexsex.csv")
+  }
   
   tryCatch({
     # Read the linear regression data
@@ -830,7 +801,8 @@ create_linear_plot_interaction <- function(input_country, input_year, outcome_va
       geom_text(aes(label = sprintf("Est = %.2f", estimate), x = estimate),
                 size = 3.5, hjust = 0.46, vjust = 2, color = "black") +
       theme_minimal() +
-      labs(title = paste("With Interaction - Outcome Variable:", outcome_variable, "-", input_country),
+      labs(title = paste("With Interaction - Outcome Variable:", outcome_variable, "-", input_country,
+                         ifelse(!is.null(input_year) && input_year != "", paste0(" ", input_year), "")),
            x = "Estimate (Standardized Estimate, 95% CI)", y = "") +
       geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
       scale_color_manual(values = c("Significant" = "steelblue", "Non-significant" = "black")) +
@@ -840,7 +812,7 @@ create_linear_plot_interaction <- function(input_country, input_year, outcome_va
             legend.text = element_text(size = 12),
             axis.text.x = element_text(size = 12),
             axis.title.x = element_text(size = 12, margin = margin(t = 10)),
-            axis.text.y = element_text(size = 12), margin = margin(t = 10)) +
+            axis.text.y = element_text(size = 12, margin = margin(r = 10))) +
       guides(color = guide_legend(title = ""))
     
     return(plot)
@@ -854,10 +826,14 @@ create_linear_plot_interaction <- function(input_country, input_year, outcome_va
 }
 
 # Function to create linear regression plot without interaction
-create_linear_plot_main <- function(input_country, input_year, outcome_variable) {
+create_linear_plot_main <- function(input_country, input_year = NULL, outcome_variable) {
   
-  # Construct file path (without interaction term)
-  file_path <- paste0("data/Regression/", input_country, "/", input_country, "_all_reg_", outcome_variable, "_profile.csv")
+  # Construct file paths
+  if (!is.null(input_year) && input_year != "") {
+    file_path <- paste0("data/Regression/", input_country, "/", "SurveyYear_", input_year, "/", input_country, "_", input_year, "_reg_", outcome_variable,  "_profile.csv")
+  } else {
+    file_path <- paste0("data/Regression/", input_country, "/", input_country, "_all_reg_", outcome_variable, "_profile.csv")
+  }
   
   tryCatch({
     # Read the linear regression data
@@ -881,7 +857,8 @@ create_linear_plot_main <- function(input_country, input_year, outcome_variable)
       geom_text(aes(label = sprintf("Est = %.2f", estimate), x = estimate),
                 size = 3.5, hjust = 0.46, vjust = 2, color = "black") +
       theme_minimal() +
-      labs(title = paste("Main Effects - Outcome Variable:", outcome_variable, "-", input_country),
+      labs(title = paste("Main Effects - Outcome Variable:", outcome_variable, "-", input_country,
+                         ifelse(!is.null(input_year) && input_year != "", paste0(" ", input_year), "")),
            x = "Estimate (Standardized Estimate, 95% CI)", y = "") +
       geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
       scale_color_manual(values = c("Significant" = "steelblue", "Non-significant" = "black")) +
@@ -891,7 +868,7 @@ create_linear_plot_main <- function(input_country, input_year, outcome_variable)
             legend.text = element_text(size = 12),
             axis.text.x = element_text(size = 12),
             axis.title.x = element_text(size = 12, margin = margin(t = 10)),
-            axis.text.y = element_text(size = 12), margin = margin(t = 10)) +
+            axis.text.y = element_text(size = 12, margin = margin(r = 10))) +
       guides(color = guide_legend(title = ""))
     
     return(plot)
@@ -956,46 +933,214 @@ ui <- fluidPage(
              
              # Map Page
              tabPanel("Map",
-                      # Set max height for the page to fill browser window
-                      tags$style(type = "text/css", "html, body {height: 100%} 
-                                 #mapContainer {height: calc(90vh - 200px);}"),
-                      fluidPage(
-                        h3("Health Indicators Over Time"),
-                        # Health indicator buttons above the map
-                        fluidRow(
-                          column(12, align = "center",
-                                 radioButtons("map_variable", "Select Health Indicator:", 
-                                              choices = pred_vars,
-                                              inline = TRUE)
-                          )
-                        ),
-                        # Map takes full width and most of the height
-                        fluidRow(
-                          column(12, 
-                                 div(id = "mapContainer",
-                                     leafletOutput("mapPlot", height = "100%", width = "100%")
-                                 )
-                          )
-                        ),
-                        # Year slider below the map
-                        fluidRow(
-                          column(12, align = "center",
-                                 sliderInput("year_slider", "Select Survey Year:",
-                                             min = min(hbsc_map$surveyyear, na.rm = TRUE), 
-                                             max = max(hbsc_map$surveyyear, na.rm = TRUE),
-                                             value = min(hbsc_map$surveyyear, na.rm = TRUE), 
-                                             step = 4, sep = "",
-                                             width = "80%")
-                                )
-                                )
-                                )
+                      tabPanel("Map",
+                               # Set max height for the page to fill browser window + info icon styling
+                               tags$style(type = "text/css", "
+                    html, body {height: 100%} 
+                    #mapContainer {height: calc(90vh - 200px);}
+                    
+                    /* Info icon styling */
+                    .info-icon {
+                      color: #007bff;
+                      margin-left: -2px;
+                      cursor: pointer;
+                      font-size: 14px;
+                      font-weight: bold;
+                      vertical-align: super;
+                      position: relative;
+                      top: -4px;
+                      text-shadow: 0 0 1px #007bff;
+                    }
+                    
+                    /* Remove any title attributes that show on hover */
+                    .info-icon[title] {
+                      title: none !important;
+                    }
+                    
+                    /* Prevent tab titles from interfering with tooltips */
+                    .nav-tabs > li > a {
+                      position: relative;
+                      z-index: 1;
+                    }
+                    
+                    /* Remove browser default tooltips */
+                    * {
+                      -webkit-user-select: none;
+                      -moz-user-select: none;
+                      -ms-user-select: none;
+                      user-select: none;
+                    }
+                    
+                    .tooltip-text {
+                      -webkit-user-select: text;
+                      -moz-user-select: text;
+                      -ms-user-select: text;
+                      user-select: text;
+                    }
+                    
+                    /* Tooltip styling */
+                    .info-tooltip {
+                      position: relative;
+                      display: inline-block;
+                    }
+                    
+                    .info-tooltip .tooltip-text {
+                      visibility: hidden;
+                      width: 320px;
+                      background-color: #333;
+                      color: white;
+                      text-align: left;
+                      border-radius: 6px;
+                      padding: 10px 15px;
+                      position: absolute;
+                      z-index: 1000;
+                      top: 50%;
+                      left: 100%;
+                      margin-left: 5px;
+                      margin-top: -50px;
+                      opacity: 0;
+                      transition: opacity 0.3s;
+                      font-size: 13px;
+                      line-height: 1.4;
+                      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                    }
+                    
+                    .info-tooltip .tooltip-text::before {
+                      content: '';
+                      position: absolute;
+                      top: 50%;
+                      left: -5px;
+                      margin-top: -5px;
+                      border-width: 5px;
+                      border-style: solid;
+                      border-color: transparent #333 transparent transparent;
+                    }
+                    
+                    .info-tooltip:hover .tooltip-text,
+                    .info-tooltip .tooltip-text:hover {
+                      visibility: visible !important;
+                      opacity: 1 !important;
+                      animation: none !important;
+                    }
+                    
+                    /* Auto-show tooltip for first visit */
+                    .info-tooltip .tooltip-text.auto-show {
+                      visibility: visible !important;
+                      opacity: 1 !important;
+                      animation: fadeOut 6s ease-in-out forwards;
+                    }
+                    
+                    @keyframes fadeOut {
+                      0% { opacity: 1; visibility: visible; }
+                      83% { opacity: 1; visibility: visible; }
+                      100% { opacity: 0; visibility: hidden; }
+                    }
+                  "),
+                               fluidPage(
+                                 # Title with info icon
+                                 h3(HTML("Health Indicators Over Time 
+                              <span class='info-tooltip'>
+                                <span class='info-icon' title=''>ⓘ</span>
+                                <span class='tooltip-text' id='map-tooltip'>
+                                  This interactive map displays health behavior data from the HBSC study. 
+                                  Select different indicators to explore patterns across European countries 
+                                  and survey years. Click on countries for detailed information. 
+                                  Countries are not supposed to be compared directly (z-Scores were calculated within country). 
+                                  Use the survey year slider to see how health indicators have developed for each country.
+                                  <br><br>
+                                  <a href='#' onclick='$(\"a[data-value=\\\"About\\\"]\").tab(\"show\"); return false;' 
+                                     style='color: #87CEEB; text-decoration: underline;'>Learn more in the About section</a>
+                                </span>
+                              </span>")),
+                                 
+                                 # Health indicator buttons - more compact
+                                 fluidRow(
+                                   column(12, align = "center",
+                                          div(class = "radio-buttons",
+                                              radioButtons("map_variable", "Select Health Indicator:", 
+                                                           choices = c("Alcohol" = "alcohol",
+                                                                       "Physical Inactivity" = "physinact",
+                                                                       "Sleep Problems" = "sleepprob", 
+                                                                       "Smoking" = "smoking",
+                                                                       "Undietary Behavior" = "undiet"),
+                                                           inline = TRUE)
+                                          )
+                                   )
+                                 ),
+                                 
+                                 # Map takes remaining height
+                                 fluidRow(
+                                   column(12, 
+                                          div(id = "mapContainer",
+                                              leafletOutput("mapPlot", height = "100%", width = "100%")
+                                          )
+                                   )
+                                 ),
+                                 
+                                 # Year slider - more compact
+                                 fluidRow(
+                                   column(12, align = "center",
+                                          div(class = "year-slider",
+                                              sliderInput("year_slider", "Select Survey Year:",
+                                                          min = min(hbsc_map$surveyyear, na.rm = TRUE), 
+                                                          max = max(hbsc_map$surveyyear, na.rm = TRUE),
+                                                          value = min(hbsc_map$surveyyear, na.rm = TRUE), 
+                                                          step = 4, sep = "",
+                                                          width = "80%")
+                                          )
+                                   )
+                                 ),
+                                 
+                                 # JavaScript for auto-show tooltip on first visit
+                                 tags$script(HTML("
+                                   $(document).ready(function() {
+                                     // Reset the flag on page refresh
+                                     sessionStorage.removeItem('hasSeenMapTooltip');
+                                     
+                                     // Check if user has seen tooltip in this session
+                                     var hasSeenMapTooltip = sessionStorage.getItem('hasSeenMapTooltip');
+                                     
+                                     if (!hasSeenMapTooltip) {
+                                       // Show tooltip automatically for 4 seconds
+                                       setTimeout(function() {
+                                         $('#map-tooltip').addClass('auto-show');
+                                         sessionStorage.setItem('hasSeenMapTooltip', 'true');
+                                         
+                                         // Remove the auto-show class after animation completes
+                                         setTimeout(function() {
+                                           $('#map-tooltip').removeClass('auto-show');
+                                         }, 4000);
+                                       }, 1000); // Increased delay to ensure everything is loaded
+                                     }
+                                   });
+                                   
+                                   // Also trigger when Map tab is clicked
+                                   $(document).on('shown.bs.tab', 'a[data-toggle=\"tab\"]', function (e) {
+                                     if ($(e.target).text().trim() === 'Map') {
+                                       var hasSeenMapTooltip = sessionStorage.getItem('hasSeenMapTooltip');
+                                       if (!hasSeenMapTooltip) {
+                                         setTimeout(function() {
+                                           $('#map-tooltip').addClass('auto-show');
+                                           sessionStorage.setItem('hasSeenMapTooltip', 'true');
+                                           
+                                           setTimeout(function() {
+                                             $('#map-tooltip').removeClass('auto-show');
+                                           }, 6000);
+                                         }, 500);
+                                       }
+                                     }
+                                   });
+                                 "))
+                               )
+                      )
              ),
              
              # Descriptive Statistics Page
              tabPanel("Descriptive Statistics",
                       fluidPage(
                         h3("Descriptive Statistics"),
-                        p("[PLACEHOLDER]"),
+                        p("Select a country to see its descriptive statistics. Further below is a breakdown of the variables used in the analysis. 
+                          By selecting a survey year you can see what the distribution of responses was like for a variable."),
                         selectInput("country", "Select Country:",
                                     choices = c("", country),
                                     selected = "Switzerland"),
@@ -1025,17 +1170,17 @@ ui <- fluidPage(
                                                           "Family Affluence Score" = "fas"
                                                         ),
                                                         "Outcome Variables" = list(
-                                                          "Self-rated Health" = "health",
+                                                          "Feelings" = "feeling",
                                                           "Life Satisfaction" = "lifesat",
                                                           "Physical Aches" = "ache",
-                                                          "Feelings" = "feeling"
+                                                          "Self-rated Health" = "health"
                                                         ),
                                                         "Health Behavior" = list(
-                                                          "Sleep Problems" = "sleepprob",
-                                                          "Undietary Behavior" = "undiet",
-                                                          "Physical Inactivity" = "physinact",
                                                           "Alcohol Consumption" = "alcohol",
-                                                          "Smoking" = "smoking"
+                                                          "Physical Inactivity" = "physinact",
+                                                          "Sleep Problems" = "sleepprob",
+                                                          "Smoking" = "smoking",
+                                                          "Undietary Behavior" = "undiet"
                                                         )
                                                       ),
                                                       selected = ""
@@ -1080,83 +1225,127 @@ ui <- fluidPage(
                         tags$div(style = "display: flex; flex-wrap: wrap;",
                                  tags$div(style = "flex: 0 0 auto; min-width: 300px; margin-right: 30px;",
                                           selectInput("lpa_country", "Select Country:",
-                                             choices = c("", country),
-                                             selected = "Switzerland")
+                                                      choices = c("", country),
+                                                      selected = "Switzerland")
+                                 ),
+                                 tags$div(style = "flex: 0 0 auto; min-width: 250px; margin-right: 30px;",
+                                          selectInput("lpa_year", "Select Survey Year:",
+                                                      choices = c("All Years" = "", survey_years),
+                                                      selected = "")
+                                 ),
+                                 tags$div(style = "flex: 0 0 auto; min-width: 200px;",
+                                          checkboxInput("compare_countries", "Compare Countries", 
+                                                        value = FALSE)
+                                 )
+                        ),
+                        
+                        # Conditional country selection for comparison
+                        conditionalPanel(
+                          condition = "input.compare_countries",
+                          tags$div(style = "margin-top: 10px; margin-bottom: 10px;",
+                                   selectInput("lpa_country_compare", "Select Second Country for Comparison:",
+                                               choices = c("", country),
+                                               selected = "")
+                          )
+                        ),
+                        br(),
+                        
+                        # LPA plots - conditional layout based on comparison toggle
+                        conditionalPanel(
+                          condition = "!input.compare_countries",
+                          fluidRow(
+                            column(12,
+                                   plotOutput("lpa_plot_single", width = "100%", height = "600px")
+                            )
+                          )
+                        ),
+                        
+                        conditionalPanel(
+                          condition = "input.compare_countries",
+                          fluidRow(
+                            column(6,
+                                   h4(textOutput("country1_title")),
+                                   plotOutput("lpa_plot", width = "100%", height = "600px")
+                            ),
+                            column(6,
+                                   h4(textOutput("country2_title")),
+                                   plotOutput("lpa_plot_compare", width = "100%", height = "600px")
+                            )
+                          )
+                        ),
+                        br(),
+                        
+                        tags$div(style = "display: flex; flex-wrap: wrap;",
+                                 tags$div(style = "flex: 0 0 auto; min-width: 200px;",
+                                          checkboxInput("show_regression", "Show Regression Results", 
+                                                        value = FALSE)
+                                 )
+                        ),
+                        br(),
+                        
+                        # Conditional Linear regression plots
+                        conditionalPanel(
+                          condition = "input.show_regression",
+                          
+                          h4("Multinomial Regression Results"),
+                          fluidRow(
+                            column(12,
+                                   plotOutput("multinomial_plot", width = "100%", height = "600px")
+                            )
                           ),
-                          tags$div(style = "flex: 0 0 auto; min-width: 250px;",
-                                   selectInput("lpa_year", "Select Survey Year:",
-                                             choices = c("All Years" = "", survey_years),
-                                             selected = "")
-                          )
-                        ),
-                        br(),
-                        
-                        # LPA and Multinomial plots first
-                        fluidRow(
-                          column(12,
-                                 plotOutput("lpa_plot", width = "100%", height = "600px")
-                          )
-                        ),
-                        br(),
-                        
-                        fluidRow(
-                          column(12,
-                                 plotOutput("multinomial_plot", width = "100%", height = "600px")
-                          )
-                        ),
-                        br(),
-                        
-                        # Linear regression plots in pairs
-                        h4("Linear Regression Results"),
-                        
-                        # Ache plots
-                        h5("Outcome Variable: Ache"),
-                        fluidRow(
-                          column(6,
-                                 plotOutput("ache_main_plot", width = "100%", height = "500px")
+                          br(),
+                          
+                          h4("Linear Regression Results"),
+                          
+                          # Ache plots
+                          h5("Outcome Variable: Ache"),
+                          fluidRow(
+                            column(6,
+                                   plotOutput("ache_main_plot", width = "100%", height = "500px")
+                            ),
+                            column(6,
+                                   plotOutput("ache_interaction_plot", width = "100%", height = "500px")
+                            )
                           ),
-                          column(6,
-                                 plotOutput("ache_interaction_plot", width = "100%", height = "500px")
-                          )
-                        ),
-                        br(),
-                        
-                        # Feeling plots
-                        h5("Outcome Variable: Feeling"),
-                        fluidRow(
-                          column(6,
-                                 plotOutput("feeling_main_plot", width = "100%", height = "500px")
+                          br(),
+                          
+                          # Feeling plots
+                          h5("Outcome Variable: Feeling"),
+                          fluidRow(
+                            column(6,
+                                   plotOutput("feeling_main_plot", width = "100%", height = "500px")
+                            ),
+                            column(6,
+                                   plotOutput("feeling_interaction_plot", width = "100%", height = "500px")
+                            )
                           ),
-                          column(6,
-                                 plotOutput("feeling_interaction_plot", width = "100%", height = "500px")
-                          )
-                        ),
-                        br(),
-                        
-                        # Health plots
-                        h5("Outcome Variable: Health"),
-                        fluidRow(
-                          column(6,
-                                 plotOutput("health_main_plot", width = "100%", height = "500px")
+                          br(),
+                          
+                          # Health plots
+                          h5("Outcome Variable: Health"),
+                          fluidRow(
+                            column(6,
+                                   plotOutput("health_main_plot", width = "100%", height = "500px")
+                            ),
+                            column(6,
+                                   plotOutput("health_interaction_plot", width = "100%", height = "500px")
+                            )
                           ),
-                          column(6,
-                                 plotOutput("health_interaction_plot", width = "100%", height = "500px")
-                          )
-                        ),
-                        br(),
-                        
-                        # Life Satisfaction plots
-                        h5("Outcome Variable: Life Satisfaction"),
-                        fluidRow(
-                          column(6,
-                                 plotOutput("lifesat_main_plot", width = "100%", height = "500px")
-                          ),
-                          column(6,
-                                 plotOutput("lifesat_interaction_plot", width = "100%", height = "500px")
+                          br(),
+                          
+                          # Life Satisfaction plots
+                          h5("Outcome Variable: Life Satisfaction"),
+                          fluidRow(
+                            column(6,
+                                   plotOutput("lifesat_main_plot", width = "100%", height = "500px")
+                            ),
+                            column(6,
+                                   plotOutput("lifesat_interaction_plot", width = "100%", height = "500px")
+                            )
                           )
                         )
                       )
-                    ),
+             ),
              
              # About Page
              tabPanel("About",
@@ -1176,8 +1365,12 @@ server <- function(input, output, session) {
   output$predictorStatsTable <- renderTable({
     req(input$country)
     
-    # Define predictor variables
-    predictor_variables <- c("physinact", "sleepprob", "undiet", "smoking", "alcohol")
+    # Define predictor variables in alphabetical order with full names
+    predictor_variables <- c("Alcohol Consumption" = "alcohol",
+                             "Physical Inactivity" = "physinact",
+                             "Sleep Problems" = "sleepprob",
+                             "Smoking" = "smoking",
+                             "Undietary Behavior" = "undiet")
     
     # Filter data for selected country
     country_data <- hbsc %>% 
@@ -1186,9 +1379,12 @@ server <- function(input, output, session) {
     # Calculate statistics for predictor variables
     stats_df <- data.frame()
     
-    for (var in predictor_variables) {
-      if (var %in% names(country_data)) {
-        var_data <- country_data[[var]]
+    for (i in 1:length(predictor_variables)) {
+      var_name <- names(predictor_variables)[i]  # Full name
+      var_code <- predictor_variables[i]         # Variable code
+      
+      if (var_code %in% names(country_data)) {
+        var_data <- country_data[[var_code]]
         n_participants <- nrow(country_data)
         n_na <- sum(is.na(var_data))
         response_rate <- round(((n_participants - n_na) / n_participants) * 100, 1)
@@ -1196,7 +1392,7 @@ server <- function(input, output, session) {
         sd_val <- round(sd(var_data, na.rm = TRUE), 2)
         
         stats_df <- rbind(stats_df, data.frame(
-          Variable = var,
+          Variable = var_name,  # Use full name instead of code
           Mean = mean_val,
           SD = sd_val,
           Participants = n_participants,
@@ -1213,8 +1409,12 @@ server <- function(input, output, session) {
   output$outcomeStatsTable <- renderTable({
     req(input$country)
     
-    # Define outcome variables
-    outcome_variables <- c("health", "lifesat", "feeling", "ache")
+    # Define outcome variables in alphabetical order with full names
+    outcome_variables <- c("Feelings" = "feeling",
+                           "Life Satisfaction" = "lifesat",
+                           "Physical Aches" = "ache",
+                           "Self-rated Health" = "health"
+                           )
     
     # Filter data for selected country
     country_data <- hbsc %>% 
@@ -1223,9 +1423,12 @@ server <- function(input, output, session) {
     # Calculate statistics for outcome variables
     stats_df <- data.frame()
     
-    for (var in outcome_variables) {
-      if (var %in% names(country_data)) {
-        var_data <- country_data[[var]]
+    for (i in 1:length(outcome_variables)) {
+      var_name <- names(outcome_variables)[i]  # Full name
+      var_code <- outcome_variables[i]         # Variable code
+      
+      if (var_code %in% names(country_data)) {
+        var_data <- country_data[[var_code]]
         n_participants <- nrow(country_data)
         n_na <- sum(is.na(var_data))
         response_rate <- round(((n_participants - n_na) / n_participants) * 100, 1)
@@ -1233,7 +1436,7 @@ server <- function(input, output, session) {
         sd_val <- round(sd(var_data, na.rm = TRUE), 2)
         
         stats_df <- rbind(stats_df, data.frame(
-          Variable = var,
+          Variable = var_name,  # Use full name instead of code
           Mean = mean_val,
           SD = sd_val,
           Participants = n_participants,
@@ -1268,9 +1471,9 @@ server <- function(input, output, session) {
       theme_minimal() +
       theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
             axis.text.y = element_text(size = 14),
-            axis.title.x = element_text(size = 16),
-            axis.title.y = element_text(size = 16),
-            plot.title = element_text(size = 18, hjust = 0.5),
+            axis.title.x = element_text(size = 14),
+            axis.title.y = element_text(size = 14),
+            plot.title = element_text(size = 16, hjust = 0.5),
             legend.position = "none")
   })
   
@@ -1294,9 +1497,9 @@ server <- function(input, output, session) {
       theme_minimal() +
       theme(axis.text.x = element_text(size = 14),
             axis.text.y = element_text(size = 14),
-            axis.title.x = element_text(size = 16),
-            axis.title.y = element_text(size = 16),
-            plot.title = element_text(size = 18, hjust = 0.5),
+            axis.title.x = element_text(size = 14),
+            axis.title.y = element_text(size = 14),
+            plot.title = element_text(size = 16, hjust = 0.5),
             legend.position = "none")
   })
   
@@ -1475,15 +1678,45 @@ server <- function(input, output, session) {
   
   # Generate all plots when country or year changes
   all_plots <- reactive({
-    req(input$lpa_country != "")  # Wait until a country is selected
+    req(input$lpa_country != "")  
     
     create_all_plots(input$lpa_country, input$lpa_year)
+  })
+  
+  # Dynamic titles for comparison
+  output$country1_title <- renderText({
+    if (input$compare_countries && !is.null(input$lpa_country) && input$lpa_country != "") {
+      paste(input$lpa_country, ifelse(!is.null(input$lpa_year) && input$lpa_year != "", paste0(" (", input$lpa_year, ")"), ""))
+    } else {
+      ""
+    }
+  })
+  
+  output$country2_title <- renderText({
+    if (input$compare_countries && !is.null(input$lpa_country_compare) && input$lpa_country_compare != "") {
+      paste(input$lpa_country_compare, ifelse(!is.null(input$lpa_year) && input$lpa_year != "", paste0(" (", input$lpa_year, ")"), ""))
+    } else {
+      ""
+    }
   })
   
   # LPA Plot
   output$lpa_plot <- renderPlot({
     plots <- all_plots()
     plots$lpa_plot
+  })
+  
+  # LPA Plot for single view (when not comparing)
+  output$lpa_plot_single <- renderPlot({
+    plots <- all_plots()
+    plots$lpa_plot
+  })
+  
+  # LPA Plot for comparison country (just this one plot)
+  output$lpa_plot_compare <- renderPlot({
+    req(input$compare_countries, input$lpa_country_compare != "")
+    
+    create_lpa_plot(input$lpa_country_compare, input$lpa_year)
   })
   
   # Multinomial Regression Plot

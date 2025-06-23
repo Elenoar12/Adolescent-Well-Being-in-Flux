@@ -665,6 +665,16 @@ create_lpa_plot <- function(input_country, input_year = NULL) {
     # Read the CSV file directly
     means_df_filtered <- read.csv(csv_filepath)
     
+    # Rename "undietary behavior" to "Unhealthy Diet" (corrected)
+    means_df_filtered$Variable <- gsub("undietary behavior", "Unhealthy Diet", means_df_filtered$Variable, ignore.case = TRUE)
+    
+    # Rename "alcohol" to "Alcohol Consumption"
+    means_df_filtered$Variable <- gsub("alcohol", "Alcohol Consumption", means_df_filtered$Variable, ignore.case = TRUE)
+    
+    # Set the desired order for x-axis variables
+    desired_order <- c("Alcohol Consumption", "Smoking", "Physical Inactivity", "Sleep Problems", "Unhealthy Diet")
+    means_df_filtered$Variable <- factor(means_df_filtered$Variable, levels = desired_order)
+    
     # Convert LatentClass to factor
     means_df_filtered$LatentClass <- factor(means_df_filtered$LatentClass,
                                             levels = c(1, 2, 3, 4))
@@ -751,7 +761,7 @@ create_multinomial_plot <- function(input_country, input_year = NULL) {
                 size = 3.5, hjust = 0.46, vjust = 4, color = "black") +  
       theme_minimal() +
       labs(title = paste("Multinomial Regression: Odds Ratios by Profile -", input_country,
-                         ifelse(!is.null(input_year) && input_year != "ALL", paste0(" ", input_year), "")),
+                         ifelse(!is.null(input_year) && input_year != "ALL", paste0("", input_year), "")),
            x = "Estimate (Odds Ratio, 95% CI)", y = "") +
       geom_vline(xintercept = 1, linetype = "dashed", color = "black") +
       facet_wrap(~ Profile) +
@@ -807,7 +817,7 @@ create_linear_plot_interaction <- function(input_country, input_year = NULL, out
                 size = 3.5, hjust = 0.46, vjust = 2, color = "black") +
       theme_minimal() +
       labs(title = paste("With Interaction - Outcome Variable:", outcome_variable, "-", input_country,
-                         ifelse(!is.null(input_year) && input_year != "ALL", paste0(" ", input_year), "")),
+                         ifelse(!is.null(input_year) && input_year != "ALL", paste0("", input_year), "")),
            x = "Estimate (Standardized Estimate, 95% CI)", y = "") +
       geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
       scale_color_manual(values = c("Significant" = "steelblue", "Non-significant" = "black")) +
@@ -863,7 +873,7 @@ create_linear_plot_main <- function(input_country, input_year = NULL, outcome_va
                 size = 3.5, hjust = 0.46, vjust = 2, color = "black") +
       theme_minimal() +
       labs(title = paste("Main Effects - Outcome Variable:", outcome_variable, "-", input_country,
-                         ifelse(!is.null(input_year) && input_year != "ALL", paste0(" ", input_year), "")),
+                         ifelse(!is.null(input_year) && input_year != "ALL", paste0("", input_year), "")),
            x = "Estimate (Standardized Estimate, 95% CI)", y = "") +
       geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
       scale_color_manual(values = c("Significant" = "steelblue", "Non-significant" = "black")) +
@@ -1064,9 +1074,9 @@ ui <- fluidPage(
                                           div(class = "radio-buttons",
                                               radioButtons("map_variable", "Select Health Indicator:", 
                                                            choices = c("Alcohol Consumption" = "alcohol",
+                                                                       "Smoking" = "smoking",
                                                                        "Physical Inactivity" = "physinact",
                                                                        "Sleep Problems" = "sleepprob", 
-                                                                       "Smoking" = "smoking",
                                                                        "Unhealthy Diet" = "undiet"),
                                                            inline = TRUE)
                                           )
@@ -1188,9 +1198,9 @@ ui <- fluidPage(
                                                         ),
                                                         "Health Behavior" = list(
                                                           "Alcohol Consumption" = "alcohol",
+                                                          "Smoking" = "smoking",
                                                           "Physical Inactivity" = "physinact",
                                                           "Sleep Problems" = "sleepprob",
-                                                          "Smoking" = "smoking",
                                                           "Unhealthy Diet" = "undiet"
                                                         )
                                                       ),
@@ -1382,9 +1392,9 @@ server <- function(input, output, session) {
     
     # Define predictor variables in alphabetical order with full names
     predictor_variables <- c("Alcohol Consumption" = "alcohol",
+                             "Smoking" = "smoking",
                              "Physical Inactivity" = "physinact",
                              "Sleep Problems" = "sleepprob",
-                             "Smoking" = "smoking",
                              "Unhealthy Diet" = "undiet")
     
     # Filter data for selected country
@@ -1572,7 +1582,7 @@ server <- function(input, output, session) {
       
       "sleepprob" = "<strong>Sleep Problems</strong> measures the frequency of sleep difficulties experienced by adolescents in the past 6 months. Sleep quality is crucial for physical and mental health, academic performance, and overall well-being.",
       
-      "undiet" = "<strong>Dietary Behaviors</strong> includes consumption patterns of sweets, soft drinks, vegetables, and fruits. These measures assess adherence to healthy eating patterns and consumption of foods that may impact health outcomes.",
+      "undiet" = "<strong>Unhealthy Diet</strong> includes consumption patterns of sweets, soft drinks, vegetables, and fruits. These measures assess adherence to healthy eating patterns and consumption of foods that may impact health outcomes.",
       
       "physinact" = "<strong>Physical Inactivity</strong> measures the number of days per week adolescents are physically active for at least 60 minutes. Physical activity is essential for healthy development and prevention of chronic diseases.",
       

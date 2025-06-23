@@ -182,6 +182,9 @@ hbsc_map <- st_as_sf(bind_rows(hbsc_map, ukraine_with_crimea))
 hbsc_map <- hbsc_map %>%
   filter(!(countryname == "Russia"))
 
+hbsc <- hbsc %>% 
+  filter(!(countryname == "Russia"))
+
 # Function to generate the Leaflet map for any variable
 generate_map <- function(variable, year) {
   # Filter main hbsc data for selected year
@@ -298,7 +301,7 @@ hbsc_mappings <- list(
   likert_physinact = c("1" = "7 days", "2" = "6 days", "3" = "5 days", 
                        "4" = "4 days", "5" = "3 days", "6" = "2 days", 
                        "7" = "1 day", "8" = "0 days"),
-  # Undietary behavior
+  # Unhealthy Diet
   likert_undiet_r = c("1" = "Every day, more than once", "2" = "Once a day, every day",
                       "3" = "5-6 days a week", "4" = "2-4 days a week", 
                       "5" = "Once a week", "6" = "Less than once a week", "7" = "Never"),
@@ -441,13 +444,15 @@ create_histogram <- function(filtered_data, variable_name, title, order) {
   # Match actual values to the order vector instead of sorting alphabetically
   ordered_values <- intersect(order, actual_values)
   
-  # Create histogram for a single variable
+  # Create histogram for a single variable with NA handling
   p <- filtered_data %>%
     mutate(!!variable_name := factor(.data[[variable_name]], 
                                      levels = ordered_values,
                                      exclude = NULL)) %>%
-    ggplot(aes_string(x = variable_name)) +
-    geom_bar(fill = "steelblue", color = "black", alpha = 0.7) +
+    ggplot(aes(x = .data[[variable_name]], fill = is.na(.data[[variable_name]]))) +
+    geom_bar(color = "black", alpha = 0.7) +
+    scale_fill_manual(values = c("FALSE" = "steelblue", "TRUE" = "gray"),
+                      guide = "none") +  # Hide legend
     labs(
       title = title,
       subtitle = paste("Variable:", variable_name),
@@ -646,7 +651,7 @@ desc_histograms <- function(data, countryname = NULL, surveyyear = NULL, variabl
 create_lpa_plot <- function(input_country, input_year = NULL) {
   
   # Construct file paths
-  if (!is.null(input_year) && input_year != "") {
+  if (!is.null(input_year) && input_year != "ALL") {
     mplus_folder_path <- paste0("data/LPA/", input_country, "/",  input_year)
     csv_filename <- paste0(tolower(input_country), "_", input_year, "_c4.csv")
   } else {
@@ -678,7 +683,7 @@ create_lpa_plot <- function(input_country, input_year = NULL) {
       geom_line() +
       labs(
         title = paste0("Latent Profile Analysis ", input_country, 
-                       ifelse(!is.null(input_year) && input_year != "", paste0(" ", input_year), ""), 
+                       ifelse(!is.null(input_year) && input_year != "ALL", paste0(" ", input_year), ""), 
                        ", 4 Profiles"),
         x = "Health Behaviors",
         y = "Means",
@@ -718,7 +723,7 @@ create_lpa_plot <- function(input_country, input_year = NULL) {
 create_multinomial_plot <- function(input_country, input_year = NULL) {
   
   # Construct file paths
-  if (!is.null(input_year) && input_year != "") {
+  if (!is.null(input_year) && input_year != "ALL") {
     file_path <- file.path("data", "Regression", input_country, paste0("SurveyYear_", input_year), 
                            paste0(input_country, "_", input_year, "_multinom_profile~age+sex+ses.csv"))
   } else {
@@ -746,9 +751,9 @@ create_multinomial_plot <- function(input_country, input_year = NULL) {
                 size = 3.5, hjust = 0.46, vjust = 4, color = "black") +  
       theme_minimal() +
       labs(title = paste("Multinomial Regression: Odds Ratios by Profile -", input_country,
-                         ifelse(!is.null(input_year) && input_year != "", paste0(" ", input_year), "")),
+                         ifelse(!is.null(input_year) && input_year != "ALL", paste0(" ", input_year), "")),
            x = "Estimate (Odds Ratio, 95% CI)", y = "") +
-      geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
+      geom_vline(xintercept = 1, linetype = "dashed", color = "black") +
       facet_wrap(~ Profile) +
       theme(panel.border = element_rect(color = "black", fill = NA, size = .5),
             plot.title = element_text(size = 16),
@@ -773,7 +778,7 @@ create_multinomial_plot <- function(input_country, input_year = NULL) {
 create_linear_plot_interaction <- function(input_country, input_year = NULL, outcome_variable) {
   
   # Construct file paths
-  if (!is.null(input_year) && input_year != "") {
+  if (!is.null(input_year) && input_year != "ALL") {
     file_path <- paste0("data/Regression/", input_country, "/", "SurveyYear_", input_year, "/", input_country, "_", input_year, "_reg_", outcome_variable,  "_profile+age+sex+ses+profilexsex.csv")
   } else {
     file_path <- paste0("data/Regression/", input_country, "/", input_country, "_all_reg_", outcome_variable, "_profile+age+sex+ses+profilexsex.csv")
@@ -802,7 +807,7 @@ create_linear_plot_interaction <- function(input_country, input_year = NULL, out
                 size = 3.5, hjust = 0.46, vjust = 2, color = "black") +
       theme_minimal() +
       labs(title = paste("With Interaction - Outcome Variable:", outcome_variable, "-", input_country,
-                         ifelse(!is.null(input_year) && input_year != "", paste0(" ", input_year), "")),
+                         ifelse(!is.null(input_year) && input_year != "ALL", paste0(" ", input_year), "")),
            x = "Estimate (Standardized Estimate, 95% CI)", y = "") +
       geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
       scale_color_manual(values = c("Significant" = "steelblue", "Non-significant" = "black")) +
@@ -829,7 +834,7 @@ create_linear_plot_interaction <- function(input_country, input_year = NULL, out
 create_linear_plot_main <- function(input_country, input_year = NULL, outcome_variable) {
   
   # Construct file paths
-  if (!is.null(input_year) && input_year != "") {
+  if (!is.null(input_year) && input_year != "ALL") {
     file_path <- paste0("data/Regression/", input_country, "/", "SurveyYear_", input_year, "/", input_country, "_", input_year, "_reg_", outcome_variable,  "_profile.csv")
   } else {
     file_path <- paste0("data/Regression/", input_country, "/", input_country, "_all_reg_", outcome_variable, "_profile.csv")
@@ -858,7 +863,7 @@ create_linear_plot_main <- function(input_country, input_year = NULL, outcome_va
                 size = 3.5, hjust = 0.46, vjust = 2, color = "black") +
       theme_minimal() +
       labs(title = paste("Main Effects - Outcome Variable:", outcome_variable, "-", input_country,
-                         ifelse(!is.null(input_year) && input_year != "", paste0(" ", input_year), "")),
+                         ifelse(!is.null(input_year) && input_year != "ALL", paste0(" ", input_year), "")),
            x = "Estimate (Standardized Estimate, 95% CI)", y = "") +
       geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
       scale_color_manual(values = c("Significant" = "steelblue", "Non-significant" = "black")) +
@@ -1058,11 +1063,11 @@ ui <- fluidPage(
                                    column(12, align = "center",
                                           div(class = "radio-buttons",
                                               radioButtons("map_variable", "Select Health Indicator:", 
-                                                           choices = c("Alcohol" = "alcohol",
+                                                           choices = c("Alcohol Consumption" = "alcohol",
                                                                        "Physical Inactivity" = "physinact",
                                                                        "Sleep Problems" = "sleepprob", 
                                                                        "Smoking" = "smoking",
-                                                                       "Undietary Behavior" = "undiet"),
+                                                                       "Unhealthy Diet" = "undiet"),
                                                            inline = TRUE)
                                           )
                                    )
@@ -1156,9 +1161,15 @@ ui <- fluidPage(
                         ),
                         br(),
                         h4("Demographics"),
-                        plotOutput("ageHistogram", height = "450px"),
-                        br(),
-                        plotOutput("sexHistogram", height = "450px"),
+                        # Age and Sex histograms side by side with responsive design
+                        tags$div(style = "display: flex; flex-wrap: wrap; gap: 20px;",
+                                 tags$div(style = "flex: 1; min-width: 300px;",
+                                          plotOutput("ageHistogram", height = "400px")
+                                 ),
+                                 tags$div(style = "flex: 1; min-width: 300px;",
+                                          plotOutput("sexHistogram", height = "400px")
+                                 )
+                        ),
                         br(),
                         h3("Variable Composition"),
                         # Variable selection with proper spacing
@@ -1180,7 +1191,7 @@ ui <- fluidPage(
                                                           "Physical Inactivity" = "physinact",
                                                           "Sleep Problems" = "sleepprob",
                                                           "Smoking" = "smoking",
-                                                          "Undietary Behavior" = "undiet"
+                                                          "Unhealthy Diet" = "undiet"
                                                         )
                                                       ),
                                                       selected = ""
@@ -1188,34 +1199,38 @@ ui <- fluidPage(
                                  ),
                                  tags$div(style = "flex: 0 0 auto; min-width: 250px;",
                                           selectInput("surveyyear", "Select Survey Year:",
-                                                      choices = c("Select a country first" = ""),
+                                                      choices = c("All years" = "", "Select a country first" = "none"),
                                                       selected = ""
-                                                      )
                                           )
+                                 )
                         ),
                         br(),
-                        # Conditional panel for variable summary (when only variable is selected)
+                        # Variable definition - always shown when variable is selected
                         conditionalPanel(
-                          condition = "input.variable != '' && input.surveyyear == ''",
-                          # Variable definition/description
+                          condition = "input.variable != ''",
                           div(
                             style = "background-color: #f8f9fa; padding: 15px; border-left: 4px solid #007bff; margin-bottom: 20px;",
                             h5("Variable Definition", style = "margin-top: 0; color: #007bff;"),
                             htmlOutput("variableDefinition")
-                              ),
+                          )
+                        ),
+                        # Show summary when All Years is selected
+                        conditionalPanel(
+                          condition = "input.variable != '' && input.surveyyear == 'ALL'",
                           h4("Variable Summary"),
                           tableOutput("variableSummaryTable")
                         ),
-                        # Conditional panel for variable and year summary (when both are selected)
+                        
+                        # Show year-specific when a specific year is selected  
                         conditionalPanel(
-                          condition = "input.variable != '' && input.surveyyear != ''",
+                          condition = "input.variable != '' && input.surveyyear != 'ALL' && input.surveyyear != ''",
                           h4("Variable Summary by Year"),
                           tableOutput("variableYearSummaryTable"),
                           br(),
                           h4("Response Plots"),
                           uiOutput("histogramPlots")
-                          )
                         )
+                   )
              ),
              
              # LPA Page
@@ -1230,8 +1245,8 @@ ui <- fluidPage(
                                  ),
                                  tags$div(style = "flex: 0 0 auto; min-width: 250px; margin-right: 30px;",
                                           selectInput("lpa_year", "Select Survey Year:",
-                                                      choices = c("All Years" = "", survey_years),
-                                                      selected = "")
+                                                      choices = c("All Years" = "ALL"),
+                                                      selected = "ALL")
                                  ),
                                  tags$div(style = "flex: 0 0 auto; min-width: 200px;",
                                           checkboxInput("compare_countries", "Compare Countries", 
@@ -1370,7 +1385,7 @@ server <- function(input, output, session) {
                              "Physical Inactivity" = "physinact",
                              "Sleep Problems" = "sleepprob",
                              "Smoking" = "smoking",
-                             "Undietary Behavior" = "undiet")
+                             "Unhealthy Diet" = "undiet")
     
     # Filter data for selected country
     country_data <- hbsc %>% 
@@ -1460,11 +1475,12 @@ server <- function(input, output, session) {
     # Remap age using agecat_map with correct column name
     country_data$age_category <- names(agecat_map)[match(country_data$agecat, agecat_map)]
     
-    # Create age bar plot with different colors
-    ggplot(country_data, aes(x = age_category, fill = age_category)) +
-      geom_bar(alpha = 0.8) +
+    # Create age bar plot with steelblue color and gray for NAs
+    ggplot(country_data, aes(x = age_category, fill = is.na(age_category))) +
+      geom_bar(color = "black", alpha = 0.7) +
+      scale_fill_manual(values = c("FALSE" = "steelblue", "TRUE" = "gray")) +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
       geom_text(stat = "count", aes(label = ..count..), vjust = -0.5, size = 5) +
-      scale_fill_manual(values = c("11 y/o" = "#1f77b4", "13 y/o" = "#ff7f0e", "15 y/o" = "#9467bd")) +
       labs(title = "Age Distribution",
            x = "Age Category",
            y = "Count") +
@@ -1484,13 +1500,14 @@ server <- function(input, output, session) {
     country_data <- z_hbsc %>% 
       filter(countryname == input$country)
     
-    # Create sex bar plot with gender neutral colors
-    ggplot(country_data, aes(x = factor(sex), fill = factor(sex))) +
-      geom_bar(alpha = 0.8) +
+    # Create sex bar plot with steelblue color and gray for NAs
+    country_data$sex_label <- factor(country_data$sex, levels = c(1, 2), labels = c("Male", "Female"))
+    
+    ggplot(country_data, aes(x = sex_label, fill = is.na(sex_label))) +
+      geom_bar(color = "black", alpha = 0.7) +
+      scale_fill_manual(values = c("FALSE" = "steelblue", "TRUE" = "gray")) +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
       geom_text(stat = "count", aes(label = ..count..), vjust = -0.5, size = 5) +
-      scale_fill_manual(values = c("1" = "#F7EA52", "2" = "#4CAF50"), 
-                        labels = c("1" = "Male", "2" = "Female")) +
-      scale_x_discrete(labels = c("1" = "Male", "2" = "Female")) +
       labs(title = "Sex Distribution",
            x = "Sex",
            y = "Count") +
@@ -1502,7 +1519,6 @@ server <- function(input, output, session) {
             plot.title = element_text(size = 16, hjust = 0.5),
             legend.position = "none")
   })
-  
   
   # Reactive expression for available years
   available_years <- reactive({
@@ -1519,12 +1535,24 @@ server <- function(input, output, session) {
     return(year_choices)
   })
   
-  # Observer to update survey year choices
-  observe({
-    updateSelectInput(session, "surveyyear",
-                      choices = c("All Years" = "", available_years()),
-                      selected = ""
-    )
+  observeEvent(input$country, {
+    if (input$country != "") {
+      years <- available_years()
+      
+      if (!is.null(years) && length(years) > 0) {
+        all_choices <- c("All Years" = "ALL", years)
+        
+        updateSelectInput(session, "surveyyear",
+                          choices = all_choices,
+                          selected = "ALL"
+        )
+      }
+    }
+  })
+  
+  # Reset surveyyear when a new variable for summary is chosen
+  observeEvent(input$variable, {
+    updateSelectInput(session, "surveyyear", selected = "ALL")
   })
   
   # Variable definitions output
@@ -1697,6 +1725,42 @@ server <- function(input, output, session) {
       paste(input$lpa_country_compare, ifelse(!is.null(input$lpa_year) && input$lpa_year != "", paste0(" (", input$lpa_year, ")"), ""))
     } else {
       ""
+    }
+  })
+  
+  # Reactive expression for available years for LPA
+  available_lpa_years <- reactive({
+    req(input$lpa_country)
+    
+    years <- hbsc_label %>%
+      filter(countryname == input$lpa_country) %>%
+      distinct(surveyyear) %>%
+      arrange(surveyyear) %>%
+      pull(surveyyear)
+    
+    year_choices <- as.list(years)
+    names(year_choices) <- years
+    return(year_choices)
+  })
+  
+  observeEvent(input$lpa_country, {
+    if (input$lpa_country != "") {
+      years <- available_lpa_years()
+      
+      if (!is.null(years) && length(years) > 0) {
+        all_choices <- c("All Years" = "ALL", years)
+        
+        updateSelectInput(session, "lpa_year",
+                          choices = all_choices,
+                          selected = "ALL"
+        )
+      }
+    } else {
+      # Reset to default when no country selected
+      updateSelectInput(session, "lpa_year",
+                        choices = c("All Years" = "ALL", "Select a country first" = "none"),
+                        selected = "ALL"
+      )
     }
   })
   

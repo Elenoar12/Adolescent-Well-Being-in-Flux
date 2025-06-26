@@ -1155,38 +1155,26 @@ ui <- fluidPage(
                       fluidPage(
                         h3("Descriptive Statistics"),
                         p("Select a country to see its descriptive statistics. Further below is a breakdown of the variables used in the analysis. 
-                          By selecting a survey year you can see what the distribution of responses was like for a variable."),
-                        selectInput("country", "Select Country:",
-                                    choices = c("", country),
-                                    selected = "Switzerland"),
-                        tags$div(style = "display: flex; flex-wrap: wrap;",
-                                 tags$div(style = "flex: 0 0 auto; min-width: 300px; margin-right: 30px;",
-                                          h4("Predictor Variables"),
-                                          tableOutput("predictorStatsTable")
+             By selecting a survey year you can see what the distribution of responses was like for a variable."),
+                        
+                        # All three selectInputs next to each other
+                        tags$div(style = "display: flex; gap: 20px; margin-bottom: 20px;",
+                                 tags$div(style = "width: 250px;",
+                                          selectInput("country", "Select Country:",
+                                                      choices = c("", country),
+                                                      selected = "Switzerland")
                                  ),
-                                 tags$div(style = "flex: 0 0 auto; min-width: 250px;",
-                                          h4("Outcome Variables"),
-                                          tableOutput("outcomeStatsTable")
-                                 )
-                        ),
-                        br(),
-                        h4("Demographics"),
-                        # Age and Sex histograms side by side with responsive design
-                        tags$div(style = "display: flex; flex-wrap: wrap; gap: 20px;",
-                                 tags$div(style = "flex: 1; min-width: 300px;",
-                                          plotOutput("ageHistogram", height = "400px")
+                                 tags$div(style = "width: 250px;",
+                                          selectInput("surveyyear", "Select Survey Year:",
+                                                      choices = c("All Survey Years" = "", "Select a country first" = "none"),
+                                                      selected = ""
+                                          )
                                  ),
-                                 tags$div(style = "flex: 1; min-width: 300px;",
-                                          plotOutput("sexHistogram", height = "400px")
-                                 )
-                        ),
-                        br(),
-                        h3("Variable Composition"),
-                        # Variable selection with proper spacing
-                        tags$div(style = "display: flex; flex-wrap: wrap;",
-                                 tags$div(style = "flex: 0 0 auto; min-width: 300px; margin-right: 30px;",
+                                 
+                                 tags$div(style = "width: 300px;",
                                           selectInput("variable", "Select Variable:",
                                                       choices = list(
+                                                        "No Variable Selected" = "None",
                                                         "Demographics" = list(
                                                           "Family Affluence Score" = "fas"
                                                         ),
@@ -1207,40 +1195,88 @@ ui <- fluidPage(
                                                       selected = ""
                                           )
                                  ),
-                                 tags$div(style = "flex: 0 0 auto; min-width: 250px;",
-                                          selectInput("surveyyear", "Select Survey Year:",
-                                                      choices = c("All years" = "", "Select a country first" = "none"),
-                                                      selected = ""
-                                          )
-                                 )
                         ),
-                        br(),
-                        # Variable definition - always shown when variable is selected
+                        
+                        # Default content shown when no variable is selected
                         conditionalPanel(
-                          condition = "input.variable != ''",
+                          condition = "input.variable == 'None' || input.variable == ''",
+                          tags$div(style = "display: flex; flex-wrap: wrap;",
+                                   tags$div(style = "flex: 0 0 auto; min-width: 300px; margin-right: 30px;",
+                                            h4("Predictor Variables"),
+                                            tableOutput("predictorStatsTable")
+                                   ),
+                                   tags$div(style = "flex: 0 0 auto; min-width: 250px;",
+                                            h4("Outcome Variables"),
+                                            tableOutput("outcomeStatsTable")
+                                   )
+                          ),
+                          br(),
+                          h4("Demographics"),
+                          # Age and Sex histograms side by side with responsive design
+                          tags$div(style = "display: flex; flex-wrap: wrap; gap: 20px;",
+                                   tags$div(style = "flex: 1; min-width: 300px;",
+                                            plotOutput("ageHistogramDefault", height = "400px")
+                                   ),
+                                   tags$div(style = "flex: 1; min-width: 300px;",
+                                            plotOutput("sexHistogramDefault", height = "400px")
+                                   )
+                          ),
+                          br()
+                        ),
+                        
+                        # Variable-specific content shown when variable is selected
+                        conditionalPanel(
+                          condition = "input.variable != 'None' && input.variable != ''",
+                          h3("Variable Composition"),
                           div(
                             style = "background-color: #f8f9fa; padding: 15px; border-left: 4px solid #007bff; margin-bottom: 20px;",
                             h5("Variable Definition", style = "margin-top: 0; color: #007bff;"),
                             htmlOutput("variableDefinition")
+                          ),
+                          
+                          # Container for variable summary and demographics side by side
+                          tags$div(style = "display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px;",
+                                   # Variable Summary Section
+                                   tags$div(style = "flex: 0 0 auto; width: auto;",
+                                            # Show summary when All Survey Years is selected
+                                            conditionalPanel(
+                                              condition = "input.surveyyear == 'ALL' || input.surveyyear == ''",
+                                              h4("Variable Summary"),
+                                              tableOutput("variableSummaryTable")
+                                            ),
+                                            
+                                            # Show year-specific when a specific year is selected  
+                                            conditionalPanel(
+                                              condition = "input.surveyyear != 'ALL' && input.surveyyear != ''",
+                                              h4("Variable Summary by Year"),
+                                              tableOutput("variableYearSummaryTable")
+                                            )
+                                   ),
+                                   
+                                   # Demographics Section
+                                   tags$div(style = "flex: 1; min-width: 400px;",
+                                            h4("Demographics"),
+                                            # Age and Sex histograms side by side
+                                            tags$div(style = "display: flex; flex-wrap: wrap; gap: 20px;",
+                                                     tags$div(style = "flex: 1; min-width: 280px;",
+                                                              plotOutput("ageHistogramVariable", height = "300px")
+                                                     ),
+                                                     tags$div(style = "flex: 1; min-width: 280px;",
+                                                              plotOutput("sexHistogramVariable", height = "300px")
+                                                     )
+                                            )
+                                   )
+                          ),
+                          
+                          # Response Plots (shown only when specific year is selected)
+                          conditionalPanel(
+                            condition = "input.surveyyear != 'ALL' && input.surveyyear != ''",
+                            br(),
+                            h4("Response Plots"),
+                            uiOutput("histogramPlots")
                           )
-                        ),
-                        # Show summary when All Years is selected
-                        conditionalPanel(
-                          condition = "input.variable != '' && input.surveyyear == 'ALL'",
-                          h4("Variable Summary"),
-                          tableOutput("variableSummaryTable")
-                        ),
-                        
-                        # Show year-specific when a specific year is selected  
-                        conditionalPanel(
-                          condition = "input.variable != '' && input.surveyyear != 'ALL' && input.surveyyear != ''",
-                          h4("Variable Summary by Year"),
-                          tableOutput("variableYearSummaryTable"),
-                          br(),
-                          h4("Response Plots"),
-                          uiOutput("histogramPlots")
                         )
-                   )
+                      )
              ),
              
              # LPA Page
@@ -1255,7 +1291,7 @@ ui <- fluidPage(
                                  ),
                                  tags$div(style = "flex: 0 0 auto; min-width: 250px; margin-right: 30px;",
                                           selectInput("lpa_year", "Select Survey Year:",
-                                                      choices = c("All Years" = "ALL"),
+                                                      choices = c("All Survey Years" = "ALL"),
                                                       selected = "ALL")
                                  ),
                                  tags$div(style = "flex: 0 0 auto; min-width: 200px;",
@@ -1385,7 +1421,27 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
   
-  ### Descriptive statistics
+  ### Descriptive Statistics
+  # Helper function to filter data
+  filterData <- function(data, country, surveyyear) {
+    filtered_data <- data %>% filter(countryname == country)
+    
+    if (!is.null(surveyyear) && surveyyear != "" && surveyyear != "ALL") {
+      # Try to match data types
+      if (is.numeric(data$surveyyear)) {
+        surveyyear_filter <- as.numeric(surveyyear)
+      } else {
+        surveyyear_filter <- as.character(surveyyear)
+      }
+      
+      filtered_data <- filtered_data %>% filter(surveyyear == surveyyear_filter)
+      
+    }
+    
+    return(filtered_data)
+  }
+  
+  # Descriptive statistics tables
   
   output$predictorStatsTable <- renderTable({
     req(input$country)
@@ -1397,9 +1453,8 @@ server <- function(input, output, session) {
                              "Sleep Problems" = "sleepprob",
                              "Unhealthy Diet" = "undiet")
     
-    # Filter data for selected country
-    country_data <- hbsc %>% 
-      filter(countryname == input$country)
+    # Filter data for selected country and survey year
+    country_data <- filterData(hbsc, input$country, input$surveyyear)
     
     # Calculate statistics for predictor variables
     stats_df <- data.frame()
@@ -1439,11 +1494,10 @@ server <- function(input, output, session) {
                            "Life Satisfaction" = "lifesat",
                            "Physical Aches" = "ache",
                            "Self-rated Health" = "health"
-                           )
+    )
     
-    # Filter data for selected country
-    country_data <- hbsc %>% 
-      filter(countryname == input$country)
+    # Filter data for selected country and survey year
+    country_data <- filterData(hbsc, input$country, input$surveyyear)
     
     # Calculate statistics for outcome variables
     stats_df <- data.frame()
@@ -1475,15 +1529,24 @@ server <- function(input, output, session) {
     return(stats_df)
   }, striped = TRUE, hover = TRUE, bordered = TRUE)
   
-  output$ageHistogram <- renderPlot({
+  # Demographics plots
+  
+  # Default demographics plots (duplicates of your existing logic)
+  output$ageHistogramDefault <- renderPlot({
     req(input$country)
     
-    # Filter data for selected country
-    country_data <- z_hbsc %>% 
-      filter(countryname == input$country)
+    # Filter data for selected country and survey year
+    country_data <- filterData(z_hbsc, input$country, input$surveyyear)
     
     # Remap age using agecat_map with correct column name
     country_data$age_category <- names(agecat_map)[match(country_data$agecat, agecat_map)]
+    
+    # Create title based on survey year selection
+    plot_title <- if (!is.null(input$surveyyear) && input$surveyyear != "" && input$surveyyear != "ALL") {
+      paste("Age Distribution -", input$surveyyear)
+    } else {
+      "Age Distribution"
+    }
     
     # Create age bar plot with steelblue color and gray for NAs
     ggplot(country_data, aes(x = age_category, fill = is.na(age_category))) +
@@ -1491,7 +1554,7 @@ server <- function(input, output, session) {
       scale_fill_manual(values = c("FALSE" = "steelblue", "TRUE" = "gray")) +
       scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
       geom_text(stat = "count", aes(label = ..count..), vjust = -0.5, size = 5) +
-      labs(title = "Age Distribution",
+      labs(title = plot_title,
            x = "Age Category",
            y = "Count") +
       theme_minimal() +
@@ -1503,12 +1566,18 @@ server <- function(input, output, session) {
             legend.position = "none")
   })
   
-  output$sexHistogram <- renderPlot({
+  output$sexHistogramDefault <- renderPlot({
     req(input$country)
     
-    # Filter data for selected country
-    country_data <- z_hbsc %>% 
-      filter(countryname == input$country)
+    # Filter data for selected country and survey year
+    country_data <- filterData(z_hbsc, input$country, input$surveyyear)
+    
+    # Create title based on survey year selection
+    plot_title <- if (!is.null(input$surveyyear) && input$surveyyear != "" && input$surveyyear != "ALL") {
+      paste("Sex Distribution -", input$surveyyear)
+    } else {
+      "Sex Distribution"
+    }
     
     # Create sex bar plot with steelblue color and gray for NAs
     country_data$sex_label <- factor(country_data$sex, levels = c(1, 2), labels = c("Male", "Female"))
@@ -1518,7 +1587,75 @@ server <- function(input, output, session) {
       scale_fill_manual(values = c("FALSE" = "steelblue", "TRUE" = "gray")) +
       scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
       geom_text(stat = "count", aes(label = ..count..), vjust = -0.5, size = 5) +
-      labs(title = "Sex Distribution",
+      labs(title = plot_title,
+           x = "Sex",
+           y = "Count") +
+      theme_minimal() +
+      theme(axis.text.x = element_text(size = 14),
+            axis.text.y = element_text(size = 14),
+            axis.title.x = element_text(size = 14),
+            axis.title.y = element_text(size = 14),
+            plot.title = element_text(size = 16, hjust = 0.5),
+            legend.position = "none")
+  })
+  
+  # Variable section demographics plots (duplicates of your existing logic)
+  output$ageHistogramVariable <- renderPlot({
+    req(input$country)
+    
+    # Filter data for selected country and survey year
+    country_data <- filterData(z_hbsc, input$country, input$surveyyear)
+    
+    # Remap age using agecat_map with correct column name
+    country_data$age_category <- names(agecat_map)[match(country_data$agecat, agecat_map)]
+    
+    # Create title based on survey year selection
+    plot_title <- if (!is.null(input$surveyyear) && input$surveyyear != "" && input$surveyyear != "ALL") {
+      paste("Age Distribution -", input$surveyyear)
+    } else {
+      "Age Distribution"
+    }
+    
+    # Create age bar plot with steelblue color and gray for NAs
+    ggplot(country_data, aes(x = age_category, fill = is.na(age_category))) +
+      geom_bar(color = "black", alpha = 0.7) +
+      scale_fill_manual(values = c("FALSE" = "steelblue", "TRUE" = "gray")) +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+      geom_text(stat = "count", aes(label = ..count..), vjust = -0.5, size = 5) +
+      labs(title = plot_title,
+           x = "Age Category",
+           y = "Count") +
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
+            axis.text.y = element_text(size = 14),
+            axis.title.x = element_text(size = 14),
+            axis.title.y = element_text(size = 14),
+            plot.title = element_text(size = 16, hjust = 0.5),
+            legend.position = "none")
+  })
+  
+  output$sexHistogramVariable <- renderPlot({
+    req(input$country)
+    
+    # Filter data for selected country and survey year
+    country_data <- filterData(z_hbsc, input$country, input$surveyyear)
+    
+    # Create title based on survey year selection
+    plot_title <- if (!is.null(input$surveyyear) && input$surveyyear != "" && input$surveyyear != "ALL") {
+      paste("Sex Distribution -", input$surveyyear)
+    } else {
+      "Sex Distribution"
+    }
+    
+    # Create sex bar plot with steelblue color and gray for NAs
+    country_data$sex_label <- factor(country_data$sex, levels = c(1, 2), labels = c("Male", "Female"))
+    
+    ggplot(country_data, aes(x = sex_label, fill = is.na(sex_label))) +
+      geom_bar(color = "black", alpha = 0.7) +
+      scale_fill_manual(values = c("FALSE" = "steelblue", "TRUE" = "gray")) +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+      geom_text(stat = "count", aes(label = ..count..), vjust = -0.5, size = 5) +
+      labs(title = plot_title,
            x = "Sex",
            y = "Count") +
       theme_minimal() +
@@ -1550,13 +1687,42 @@ server <- function(input, output, session) {
       years <- available_years()
       
       if (!is.null(years) && length(years) > 0) {
-        all_choices <- c("All Years" = "ALL", years)
+        all_choices <- c("All Survey Years" = "ALL", years)
         
         updateSelectInput(session, "surveyyear",
                           choices = all_choices,
                           selected = "ALL"
         )
       }
+    }
+  })
+  
+  observeEvent(input$variable, {
+    if (input$variable != "") {
+      variable_choices <- list(
+        "No Variable Selected" = "None",
+        "Demographics" = list(
+          "Family Affluence Score" = "fas"
+        ),
+        "Outcome Variables" = list(
+          "Feelings" = "feeling",
+          "Life Satisfaction" = "lifesat",
+          "Physical Aches" = "ache",
+          "Self-rated Health" = "health"
+        ),
+        "Health Behavior" = list(
+          "Alcohol Consumption" = "alcohol",
+          "Smoking" = "smoking",
+          "Physical Inactivity" = "physinact",
+          "Sleep Problems" = "sleepprob",
+          "Unhealthy Diet" = "undiet"
+        )
+      )
+      
+      updateSelectInput(session, "variable",
+                        choices = variable_choices,
+                        selected = input$variable
+      )
     }
   })
   
@@ -1758,7 +1924,7 @@ server <- function(input, output, session) {
       years <- available_lpa_years()
       
       if (!is.null(years) && length(years) > 0) {
-        all_choices <- c("All Years" = "ALL", years)
+        all_choices <- c("All Survey Years" = "ALL", years)
         
         updateSelectInput(session, "lpa_year",
                           choices = all_choices,
@@ -1768,7 +1934,7 @@ server <- function(input, output, session) {
     } else {
       # Reset to default when no country selected
       updateSelectInput(session, "lpa_year",
-                        choices = c("All Years" = "ALL", "Select a country first" = "none"),
+                        choices = c("All Survey Years" = "ALL", "Select a country first" = "none"),
                         selected = "ALL"
       )
     }

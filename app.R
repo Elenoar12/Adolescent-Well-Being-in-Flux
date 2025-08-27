@@ -40,11 +40,11 @@ hbsc_map <- hbsc_mean %>%
 
 # Remove Belgium records from hbsc_map
 hbsc_map <- hbsc_map %>%
-  filter(!(countryname %in% c("Belgium (Flemish)", "Belgium (French)")))
+  filter(!(countryname %in% c("Belgium Flemish", "Belgium French")))
 
 # Find the records in hbsc_mean that need geometries
 bel_records <- hbsc_mean %>%
-  filter(countryname %in% c("Belgium (Flemish)", "Belgium (French)"))
+  filter(countryname %in% c("Belgium Flemish", "Belgium French"))
 
 # Get Belgium regions (Level 1: Flemish, Walloon, Brussels)
 bel_regions <- gisco_get_nuts(year = "2021", nuts_level = 1, country = "BE") %>% 
@@ -53,12 +53,12 @@ bel_regions <- gisco_get_nuts(year = "2021", nuts_level = 1, country = "BE") %>%
 # Extract the Flemish Region separately
 bel_flem <- bel_regions %>% 
   filter(NAME_LATN == "Vlaams Gewest") %>% 
-  mutate(NAME_LATN = "Belgium (Flemish)") 
+  mutate(NAME_LATN = "Belgium Flemish") 
 
 # Merge Walloon & Brussels into one geometry "Belgium (French)"
 bel_fren <- bel_regions %>%
   filter(NAME_LATN %in% c("Région wallonne", "Région de Bruxelles-Capitale/Brussels Hoofdstedelijk Gewest")) %>%
-  summarise(NAME_LATN = "Belgium (French)")
+  summarise(NAME_LATN = "Belgium French")
 
 # Combine the two adjusted geometries
 bel_custom <- bind_rows(bel_flem, bel_fren) %>%
@@ -647,6 +647,18 @@ desc_histograms <- function(data, countryname = NULL, surveyyear = NULL, variabl
 
 ### LPA panel data processing
 
+# Nested directory for profile mapping
+profile_mapping <- list(
+  "Switzerland" = list(
+    "ALL" = c("Moderate risk varying substance use", "High substance use", "Low risk", "High risk"),
+    "2002" = c("High substance use", "Low risk", "Moderate risk varying substance use", "High risk"),
+    "2006" = c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk"),
+    "2010" = c("High substance use", "High risk", "Moderate risk varying substance use", "Low risk"),
+    "2014" = c("Low risk", "High substance use", "High risk", "Moderate risk varying substance use"),
+    "2018" = c("High substance use", "Low risk", "Moderate risk varying substance use", "High risk")
+  )
+)
+
 # Function to create LPA line plot
 create_lpa_plot <- function(input_country, input_year = NULL) {
   
@@ -679,16 +691,85 @@ create_lpa_plot <- function(input_country, input_year = NULL) {
     means_df_filtered$LatentClass <- factor(means_df_filtered$LatentClass,
                                             levels = c(1, 2, 3, 4))
     
+    # Check if country and year exist in profile mapping
+    year_key <- ifelse(is.null(input_year) || input_year == "ALL", "ALL", input_year)
+    use_mapping <- input_country %in% names(profile_mapping) && 
+      year_key %in% names(profile_mapping[[input_country]])
+    
+    if (use_mapping) {
+      # Use profile mapping to create meaningful labels
+      country_mapping <- profile_mapping[[input_country]][[year_key]]
+      
+      # Create profile labels using the mapping (without proportions for consistent styling)
+      means_df_filtered$ProfileLabel <- factor(
+        country_mapping[means_df_filtered$LatentClass],
+        levels = c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk")
+      )
+      
+      # Create profile labels with proportions for display
+      means_df_filtered$ProfileLabelWithProp <- paste0(
+        means_df_filtered$ProfileLabel, 
+        " (", 
+        means_df_filtered$Proportion, 
+        "%)"
+      )
+      
+      # Create ordered factor levels based on the actual data
+      desired_order <- c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk")
+      actual_labels_with_prop <- unique(means_df_filtered$ProfileLabelWithProp)
+      ordered_levels <- character(0)
+      
+      for(profile in desired_order) {
+        matching_label <- actual_labels_with_prop[grepl(paste0("^", profile, " \\("), actual_labels_with_prop)]
+        if(length(matching_label) > 0) {
+          ordered_levels <- c(ordered_levels, matching_label[1])
+        }
+      }
+      
+      means_df_filtered$ProfileLabelWithProp <- factor(means_df_filtered$ProfileLabelWithProp, 
+                                                       levels = ordered_levels)
+      
+    } else {
+      # Fall back to existing labeling logic
+      means_df_filtered$ProfileLabel <- factor(
+        paste("Profile", means_df_filtered$LatentClass),
+        levels = paste("Profile", 1:4)
+      )
+      
+      means_df_filtered$ProfileLabelWithProp <- paste0(
+        means_df_filtered$ProfileLabel, 
+        " (", 
+        means_df_filtered$Proportion, 
+        "%)"
+      )
+    }
+    
     # Reshape the data to long format for plotting
-    means_long <- melt(means_df_filtered, id.vars = c("Variable", "LatentClass"),
+    means_long <- melt(means_df_filtered, id.vars = c("Variable", "LatentClass", "ProfileLabel", "ProfileLabelWithProp"),
                        measure.vars = "Estimate")
     
-    # Create labels with class proportions for each latent class
-    class_labels <- paste0("Profile ", 1:4, " (", unique(means_df_filtered$Proportion), "%)")
+    # Get unique ProfileLabelWithProp values to create proper scale mappings
+    unique_labels <- unique(means_df_filtered$ProfileLabelWithProp)
     
-    # Create the plot with ggplot2
-    plot <- ggplot(means_long, aes(x = Variable, y = value, group = LatentClass,
-                                   color = LatentClass, linetype = LatentClass, shape = LatentClass)) +
+    # Extract the base profile names for mapping colors/shapes/linetypes
+    base_profiles <- gsub(" \\(.*?\\)", "", unique_labels)
+    
+    # Create named vectors for the scales
+    color_values <- c("#29af7f", "#bddf26", "#2e6f8e", "#482173")
+    names(color_values) <- unique_labels[match(c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk"), base_profiles)]
+    
+    linetype_values <- c("solid", "dashed", "dotted", "dotdash")
+    names(linetype_values) <- unique_labels[match(c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk"), base_profiles)]
+    
+    shape_values <- c(16, 17, 15, 18)
+    names(shape_values) <- unique_labels[match(c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk"), base_profiles)]
+    
+    # Create the plot with ggplot2 using ProfileLabelWithProp for both styling and legend
+    plot <- ggplot(means_long, aes(x = Variable, y = value, 
+                                   group = ProfileLabelWithProp,
+                                   color = ProfileLabelWithProp, 
+                                   linetype = ProfileLabelWithProp, 
+                                   shape = ProfileLabelWithProp)) +
       geom_point(size = 4) +
       geom_line() +
       labs(
@@ -697,14 +778,14 @@ create_lpa_plot <- function(input_country, input_year = NULL) {
                        ", 4 Profiles"),
         x = "Health Behaviors",
         y = "Means",
-        color = "Latent Class",
-        linetype = "Latent Class",
-        shape = "Latent Class"
+        color = "Risk Profile",
+        linetype = "Risk Profile",
+        shape = "Risk Profile"
       ) +
       scale_y_continuous(limits = c(-1, 7)) +
-      scale_color_manual(values = c("#482173", "#2e6f8e", "#29af7f", "#bddf26"), labels = class_labels) +
-      scale_linetype_manual(values = c("solid", "dashed", "dotted", "dotdash"), labels = class_labels) +
-      scale_shape_manual(values = c(16, 17, 15, 18), labels = class_labels) +
+      scale_color_manual(values = color_values) +
+      scale_linetype_manual(values = linetype_values) +
+      scale_shape_manual(values = shape_values) +
       theme_minimal() +
       theme(
         title = element_text(size = 14),
@@ -734,7 +815,7 @@ create_multinomial_plot <- function(input_country, input_year = NULL) {
   
   # Construct file paths
   if (!is.null(input_year) && input_year != "ALL") {
-    file_path <- file.path("data", "Regression", input_country, paste0("SurveyYear_", input_year), 
+    file_path <- file.path("data", "Regression", input_country, input_year, 
                            paste0(input_country, "_", input_year, "_multinom_profile~age+sex+ses.csv"))
   } else {
     file_path <- file.path("data", "Regression", input_country, 
@@ -745,26 +826,59 @@ create_multinomial_plot <- function(input_country, input_year = NULL) {
     # Read the multinomial regression data
     df_multinom <- read.csv(file_path)
     
+    # Check if country and year exist in profile mapping
+    year_key <- ifelse(is.null(input_year) || input_year == "ALL", "ALL", input_year)
+    use_mapping <- input_country %in% names(profile_mapping) && 
+      year_key %in% names(profile_mapping[[input_country]])
+    
     # Prepare data for plotting
     df_plot <- df_multinom %>%
       filter(term != "(Intercept)") %>%  # exclude intercepts
       mutate(
-        Profile = paste("Profile", y.level, "vs low risk Profile"),
+        # Use mapping if available, otherwise fall back to generic labels
+        ProfileName = if (use_mapping) {
+          profile_mapping[[input_country]][[year_key]][as.numeric(y.level)]
+        } else {
+          paste("Profile", y.level)
+        },
+        # Reference profile is always "Low risk"
+        Profile = paste(ProfileName, "vs Low risk"),
         term = factor(term, levels = unique(term))
       )
     
+    # Add ProfileName as factor for consistent coloring
+    if (use_mapping) {
+      df_plot$ProfileName <- factor(df_plot$ProfileName, 
+                                    levels = c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk"))
+    }
+    
     # Create the plot
     plot <- ggplot(df_plot, aes(x = odds_ratio, y = term)) +
-      geom_point(aes(color = Profile), shape = 18, size = 3) +
-      geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, color = Profile), height = 0.2) +
+      geom_point(aes(color = if (use_mapping) ProfileName else Profile, 
+                     shape = if (use_mapping) ProfileName else Profile), size = 3) +
+      geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, 
+                         color = if (use_mapping) ProfileName else Profile), height = 0.2) +
       geom_text(aes(label = sprintf("OR = %.2f", odds_ratio), x = odds_ratio),
                 size = 3.5, hjust = 0.46, vjust = 4, color = "black") +  
       theme_minimal() +
       labs(title = paste("Multinomial Regression: Odds Ratios by Profile -", input_country,
                          ifelse(!is.null(input_year) && input_year != "ALL", paste0("", input_year), "")),
-           x = "Estimate (Odds Ratio, 95% CI)", y = "") +
+           x = "Estimate (Odds Ratio, 95% CI)", y = "",
+           color = "Risk Profile", shape = "Risk Profile") +
       geom_vline(xintercept = 1, linetype = "dashed", color = "black") +
       facet_wrap(~ Profile) +
+      {if (use_mapping) {
+        list(
+          scale_color_manual(values = c("Low risk" = "#29af7f", 
+                                        "Moderate risk varying substance use" = "#bddf26",
+                                        "High substance use" = "#2e6f8e", 
+                                        "High risk" = "#482173")),
+          scale_shape_manual(values = c("Low risk" = 16, 
+                                        "Moderate risk varying substance use" = 17,
+                                        "High substance use" = 15, 
+                                        "High risk" = 18))
+        )
+      }} +
       theme(panel.border = element_rect(color = "black", fill = NA, size = .5),
             plot.title = element_text(size = 16),
             strip.text = element_text(size = 12),                  
@@ -789,7 +903,7 @@ create_linear_plot_interaction <- function(input_country, input_year = NULL, out
   
   # Construct file paths
   if (!is.null(input_year) && input_year != "ALL") {
-    file_path <- paste0("data/Regression/", input_country, "/", "SurveyYear_", input_year, "/", input_country, "_", input_year, "_reg_", outcome_variable,  "_profile+age+sex+ses+profilexsex.csv")
+    file_path <- paste0("data/Regression/", input_country, "/", input_year, "/", input_country, "_", input_year, "_reg_", outcome_variable,  "_profile+age+sex+ses+profilexsex.csv")
   } else {
     file_path <- paste0("data/Regression/", input_country, "/", input_country, "_all_reg_", outcome_variable, "_profile+age+sex+ses+profilexsex.csv")
   }
@@ -798,37 +912,142 @@ create_linear_plot_interaction <- function(input_country, input_year = NULL, out
     # Read the linear regression data
     df_linear <- read.csv(file_path)
     
+    # Check if country and year exist in profile mapping
+    year_key <- ifelse(is.null(input_year) || input_year == "ALL", "ALL", input_year)
+    use_mapping <- input_country %in% names(profile_mapping) && 
+      year_key %in% names(profile_mapping[[input_country]])
+    
     # Prepare data for plotting
     df_plot <- df_linear %>%
       filter(term != "(Intercept)") %>%  # exclude intercepts
       mutate(
-        conf.low = estimate - 1.96 * std.error,
-        conf.high = estimate + 1.96 * std.error,
-        term = factor(term, levels = unique(term)),
+        conf.low = std_estimate - 1.96 * std.error,
+        conf.high = std_estimate + 1.96 * std.error,
         significant = ifelse((conf.low > 0 & conf.high > 0) | (conf.low < 0 & conf.high < 0), 
                              "Significant", "Non-significant")
       )
     
+    # Find reference profile by checking which profile number is missing from terms
+    if (use_mapping) {
+      profile_terms <- df_plot$term[grepl("^profile[1234]", df_plot$term)]
+      present_profiles <- as.numeric(gsub("profile", "", gsub(":.*", "", profile_terms)))
+      all_profiles <- 1:4
+      reference_profile_num <- setdiff(all_profiles, present_profiles)[1]
+    }
+    
+    df_plot <- df_plot %>%
+      mutate(
+        # Update term names to use profile mapping if available
+        term_updated = if (use_mapping) {
+          sapply(term, function(t) {
+            # Check if term contains profile reference (e.g., "profile1", "profile2", "profile3", "profile4")
+            if (grepl("^profile[1234]", t)) {
+              profile_num <- as.numeric(gsub("profile", "", gsub(":.*", "", t)))
+              profile_name <- profile_mapping[[input_country]][[year_key]][profile_num]
+              # Replace the profile part with the mapped name
+              gsub(paste0("^profile", profile_num), profile_name, t)
+            } else {
+              as.character(t)
+            }
+          })
+        } else {
+          as.character(term)
+        }
+      )
+    
+    # Set the desired order for profile terms and add ProfileName for coloring
+    if (use_mapping) {
+      desired_profile_order <- c("Moderate risk varying substance use", "High substance use", "High risk")
+      
+      # Extract profile names for coloring/shaping
+      df_plot$ProfileName <- sapply(df_plot$term_updated, function(t) {
+        for (profile in desired_profile_order) {
+          if (grepl(paste0("^", profile), t)) {
+            return(profile)
+          }
+        }
+        return(NA)
+      })
+      
+      # Separate terms into categories
+      profile_main_terms <- df_plot$term_updated[grepl("^(Moderate risk|High substance|High risk)", df_plot$term_updated) & 
+                                                   !grepl(":", df_plot$term_updated)]
+      interaction_terms <- df_plot$term_updated[grepl("^(Moderate risk|High substance|High risk)", df_plot$term_updated) & 
+                                                  grepl(":", df_plot$term_updated)]
+      other_terms <- df_plot$term_updated[!grepl("^(Moderate risk|High substance|High risk)", df_plot$term_updated)]
+      
+      # Order each category
+      ordered_profile_main <- character(0)
+      for (profile in desired_profile_order) {
+        matching_terms <- profile_main_terms[grepl(paste0("^", profile, "$"), profile_main_terms)]
+        ordered_profile_main <- c(ordered_profile_main, matching_terms)
+      }
+      
+      ordered_interactions <- character(0)
+      for (profile in desired_profile_order) {
+        matching_terms <- interaction_terms[grepl(paste0("^", profile, ":"), interaction_terms)]
+        ordered_interactions <- c(ordered_interactions, matching_terms)
+      }
+      
+      # Final order: profile main effects, other terms, then interactions
+      term_order <- c(ordered_profile_main, other_terms, ordered_interactions)
+      df_plot$term_updated <- factor(df_plot$term_updated, levels = term_order)
+      
+      # Set ProfileName as factor for consistent coloring
+      df_plot$ProfileName <- factor(df_plot$ProfileName, 
+                                    levels = c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk"))
+    } else {
+      df_plot$term_updated <- factor(df_plot$term_updated, levels = unique(df_plot$term_updated))
+    }
+    
     # Create the plot
-    plot <- ggplot(df_plot, aes(x = estimate, y = term)) +
-      geom_point(aes(color = significant), shape = 18, size = 3) +
-      geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, color = significant), height = 0.2) +
-      geom_text(aes(label = sprintf("Est = %.2f", estimate), x = estimate),
+    plot <- ggplot(df_plot, aes(x = std_estimate, y = term_updated)) +
+      {if (use_mapping && any(!is.na(df_plot$ProfileName))) {
+        list(
+          geom_point(aes(color = ProfileName, shape = ProfileName), size = 3),
+          geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, color = ProfileName), height = 0.2)
+        )
+      } else {
+        list(
+          geom_point(aes(color = significant), shape = 18, size = 3),
+          geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, color = significant), height = 0.2)
+        )
+      }} +
+      geom_text(aes(label = sprintf("Est = %.2f", std_estimate), x = std_estimate),
                 size = 3.5, hjust = 0.46, vjust = 2, color = "black") +
       theme_minimal() +
       labs(title = paste("With Interaction - Outcome Variable:", outcome_variable, "-", input_country,
                          ifelse(!is.null(input_year) && input_year != "ALL", paste0("", input_year), "")),
-           x = "Estimate (Standardized Estimate, 95% CI)", y = "") +
+           x = "Estimate (Standardized Estimate, 95% CI)", y = "",
+           color = if (use_mapping && any(!is.na(df_plot$ProfileName))) "Risk Profile" else "Significance",
+           shape = if (use_mapping && any(!is.na(df_plot$ProfileName))) "Risk Profile" else NULL) +
       geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
-      scale_color_manual(values = c("Significant" = "steelblue", "Non-significant" = "black")) +
+      {if (use_mapping && any(!is.na(df_plot$ProfileName))) {
+        list(
+          scale_color_manual(values = c("Low risk" = "#29af7f", 
+                                        "Moderate risk varying substance use" = "#bddf26",
+                                        "High substance use" = "#2e6f8e", 
+                                        "High risk" = "#482173"),
+                             na.value = "black"),
+          scale_shape_manual(values = c("Low risk" = 16, 
+                                        "Moderate risk varying substance use" = 17,
+                                        "High substance use" = 15, 
+                                        "High risk" = 18),
+                             na.value = 18)
+        )
+      } else {
+        scale_color_manual(values = c("Significant" = "steelblue", "Non-significant" = "black"))
+      }} +
       theme(panel.border = element_rect(color = "black", fill = NA, size = .5),
             plot.title = element_text(size = 12, face = "bold"),
-            legend.position = "bottom",
+            legend.position = if (use_mapping && any(!is.na(df_plot$ProfileName))) "none" else "bottom",
             legend.text = element_text(size = 12),
             axis.text.x = element_text(size = 12),
             axis.title.x = element_text(size = 12, margin = margin(t = 10)),
             axis.text.y = element_text(size = 12, margin = margin(r = 10))) +
-      guides(color = guide_legend(title = ""))
+      {if (!use_mapping || !any(!is.na(df_plot$ProfileName))) {
+        guides(color = guide_legend(title = ""))
+      }}
     
     return(plot)
     
@@ -845,7 +1064,7 @@ create_linear_plot_main <- function(input_country, input_year = NULL, outcome_va
   
   # Construct file paths
   if (!is.null(input_year) && input_year != "ALL") {
-    file_path <- paste0("data/Regression/", input_country, "/", "SurveyYear_", input_year, "/", input_country, "_", input_year, "_reg_", outcome_variable,  "_profile.csv")
+    file_path <- paste0("data/Regression/", input_country, "/", input_year, "/", input_country, "_", input_year, "_reg_", outcome_variable,  "_profile.csv")
   } else {
     file_path <- paste0("data/Regression/", input_country, "/", input_country, "_all_reg_", outcome_variable, "_profile.csv")
   }
@@ -854,37 +1073,131 @@ create_linear_plot_main <- function(input_country, input_year = NULL, outcome_va
     # Read the linear regression data
     df_linear <- read.csv(file_path)
     
+    # Check if country and year exist in profile mapping
+    year_key <- ifelse(is.null(input_year) || input_year == "ALL", "ALL", input_year)
+    use_mapping <- input_country %in% names(profile_mapping) && 
+      year_key %in% names(profile_mapping[[input_country]])
+    
     # Prepare data for plotting
     df_plot <- df_linear %>%
       filter(term != "(Intercept)") %>%  # exclude intercepts
       mutate(
-        conf.low = estimate - 1.96 * std.error,
-        conf.high = estimate + 1.96 * std.error,
-        term = factor(term, levels = unique(term)),
+        conf.low = std_estimate - 1.96 * std.error,
+        conf.high = std_estimate + 1.96 * std.error,
         significant = ifelse((conf.low > 0 & conf.high > 0) | (conf.low < 0 & conf.high < 0), 
                              "Significant", "Non-significant")
       )
     
+    # Find reference profile by checking which profile number is missing from terms
+    if (use_mapping) {
+      profile_terms <- df_plot$term[grepl("^profile[1234]", df_plot$term)]
+      present_profiles <- as.numeric(gsub("profile", "", profile_terms))
+      all_profiles <- 1:4
+      reference_profile_num <- setdiff(all_profiles, present_profiles)[1]
+    }
+    
+    df_plot <- df_plot %>%
+      mutate(
+        # Update term names to use profile mapping if available
+        term_updated = if (use_mapping) {
+          sapply(term, function(t) {
+            # Check if term contains profile reference (e.g., "profile1", "profile2", "profile3", "profile4")
+            if (grepl("^profile[1234]", t)) {
+              profile_num <- as.numeric(gsub("profile", "", t))
+              profile_name <- profile_mapping[[input_country]][[year_key]][profile_num]
+              profile_name
+            } else {
+              as.character(t)
+            }
+          })
+        } else {
+          as.character(term)
+        }
+      )
+    
+    # Set the desired order for profile terms and add ProfileName for coloring
+    if (use_mapping) {
+      desired_profile_order <- c("Moderate risk varying substance use", "High substance use", "High risk")
+      
+      # Extract profile names for coloring/shaping (main effects only, no interactions)
+      df_plot$ProfileName <- sapply(df_plot$term_updated, function(t) {
+        for (profile in desired_profile_order) {
+          if (t == profile) {
+            return(profile)
+          }
+        }
+        return(NA)
+      })
+      
+      # Order terms: profile terms first in desired order, then other terms
+      profile_terms <- df_plot$term_updated[!is.na(df_plot$ProfileName)]
+      other_terms <- df_plot$term_updated[is.na(df_plot$ProfileName)]
+      
+      ordered_profile_terms <- character(0)
+      for (profile in desired_profile_order) {
+        if (profile %in% profile_terms) {
+          ordered_profile_terms <- c(ordered_profile_terms, profile)
+        }
+      }
+      
+      term_order <- c(ordered_profile_terms, other_terms)
+      df_plot$term_updated <- factor(df_plot$term_updated, levels = term_order)
+      
+      # Set ProfileName as factor for consistent coloring
+      df_plot$ProfileName <- factor(df_plot$ProfileName, 
+                                    levels = c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk"))
+    } else {
+      df_plot$term_updated <- factor(df_plot$term_updated, levels = unique(df_plot$term_updated))
+    }
+    
     # Create the plot
-    plot <- ggplot(df_plot, aes(x = estimate, y = term)) +
-      geom_point(aes(color = significant), shape = 18, size = 3) +
-      geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, color = significant), height = 0.2) +
-      geom_text(aes(label = sprintf("Est = %.2f", estimate), x = estimate),
+    plot <- ggplot(df_plot, aes(x = std_estimate, y = term_updated)) +
+      {if (use_mapping && any(!is.na(df_plot$ProfileName))) {
+        list(
+          geom_point(aes(color = ProfileName, shape = ProfileName), size = 3),
+          geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, color = ProfileName), height = 0.2)
+        )
+      } else {
+        list(
+          geom_point(aes(color = significant), shape = 18, size = 3),
+          geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, color = significant), height = 0.2)
+        )
+      }} +
+      geom_text(aes(label = sprintf("Est = %.2f", std_estimate), x = std_estimate),
                 size = 3.5, hjust = 0.46, vjust = 2, color = "black") +
       theme_minimal() +
       labs(title = paste("Main Effects - Outcome Variable:", outcome_variable, "-", input_country,
                          ifelse(!is.null(input_year) && input_year != "ALL", paste0("", input_year), "")),
-           x = "Estimate (Standardized Estimate, 95% CI)", y = "") +
+           x = "Estimate (Standardized Estimate, 95% CI)", y = "",
+           color = if (use_mapping && any(!is.na(df_plot$ProfileName))) "Risk Profile" else "Significance",
+           shape = if (use_mapping && any(!is.na(df_plot$ProfileName))) "Risk Profile" else NULL) +
       geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
-      scale_color_manual(values = c("Significant" = "steelblue", "Non-significant" = "black")) +
+      {if (use_mapping && any(!is.na(df_plot$ProfileName))) {
+        list(
+          scale_color_manual(values = c("Low risk" = "#29af7f", 
+                                        "Moderate risk varying substance use" = "#bddf26",
+                                        "High substance use" = "#2e6f8e", 
+                                        "High risk" = "#482173"),
+                             na.value = "black"),
+          scale_shape_manual(values = c("Low risk" = 16, 
+                                        "Moderate risk varying substance use" = 17,
+                                        "High substance use" = 15, 
+                                        "High risk" = 18),
+                             na.value = 18)
+        )
+      } else {
+        scale_color_manual(values = c("Significant" = "steelblue", "Non-significant" = "black"))
+      }} +
       theme(panel.border = element_rect(color = "black", fill = NA, size = .5),
             plot.title = element_text(size = 12, face = "bold"),
-            legend.position = "bottom",
+            legend.position = if (use_mapping && any(!is.na(df_plot$ProfileName))) "none" else "bottom",
             legend.text = element_text(size = 12),
             axis.text.x = element_text(size = 12),
             axis.title.x = element_text(size = 12, margin = margin(t = 10)),
             axis.text.y = element_text(size = 12, margin = margin(r = 10))) +
-      guides(color = guide_legend(title = ""))
+      {if (!use_mapping || !any(!is.na(df_plot$ProfileName))) {
+        guides(color = guide_legend(title = ""))
+      }}
     
     return(plot)
     
@@ -932,6 +1245,9 @@ survey_years <- unique(hbsc$surveyyear)
 
 # Define UI
 ui <- fluidPage(
+  
+  includeCSS("www/uzh_styles.css"),
+  
   titlePanel("Bechtiger & Janousch (2025): Adolescent Well-Being in Flux"),
   
   # Navigation bar for different pages
@@ -1154,11 +1470,12 @@ ui <- fluidPage(
              tabPanel("Descriptive Statistics",
                       fluidPage(
                         h3("Descriptive Statistics"),
-                        p("Select a country to see its descriptive statistics. Further below is a breakdown of the variables used in the analysis. 
-             By selecting a survey year you can see what the distribution of responses was like for a variable."),
+                        br(),
+                        p("This page presents descriptive statistics for a selected country, with the option to filter results by survey year."),
+                        p("Users may begin by selecting a country and, if desired, refining the data by specifying a survey year. Upon choosing a variable of interest, a summary of that variable will be displayed. This summary can be further expanded by selecting a specific survey year, at which point detailed response plots for the subvariables comprising the selected variable will be generated and displayed."),
                         
                         # All three selectInputs next to each other
-                        tags$div(style = "display: flex; gap: 20px; margin-bottom: 20px;",
+                        tags$div(style = "display: flex; gap: 20px;",
                                  tags$div(style = "width: 250px;",
                                           selectInput("country", "Select Country:",
                                                       choices = c("", country),
@@ -1202,7 +1519,7 @@ ui <- fluidPage(
                           condition = "input.variable == 'None' || input.variable == ''",
                           tags$div(style = "display: flex; flex-wrap: wrap;",
                                    tags$div(style = "flex: 0 0 auto; min-width: 300px; margin-right: 30px;",
-                                            h4("Predictor Variables"),
+                                            h4("LPA Indicator Variables"),
                                             tableOutput("predictorStatsTable")
                                    ),
                                    tags$div(style = "flex: 0 0 auto; min-width: 250px;",
@@ -1210,7 +1527,7 @@ ui <- fluidPage(
                                             tableOutput("outcomeStatsTable")
                                    )
                           ),
-                          br(),
+                          
                           h4("Demographics"),
                           # Age and Sex histograms side by side with responsive design
                           tags$div(style = "display: flex; flex-wrap: wrap; gap: 20px;",
@@ -1228,6 +1545,8 @@ ui <- fluidPage(
                         conditionalPanel(
                           condition = "input.variable != 'None' && input.variable != ''",
                           h3("Variable Composition"),
+                          br(),
+                          p("The response plots below show which subvariables the selected variable is composed of. It also presents the literal questions, scales and distribution of responses for a selected survey year."),
                           div(
                             style = "background-color: #f8f9fa; padding: 15px; border-left: 4px solid #007bff; margin-bottom: 20px;",
                             h5("Variable Definition", style = "margin-top: 0; color: #007bff;"),
@@ -1412,11 +1731,16 @@ ui <- fluidPage(
              tabPanel("About",
                       fluidPage(
                         h3("About the Project"),
+                        br(),
                         p("This section will present the detailed information about the project, methods and personnel")
-                                )
                       )
-             )
-  )  
+             ),
+             
+             # Add footer at the end
+             div(class = "footer", 
+                 "© 2025 Universität Zürich. All rights reserved.")
+  )
+)  
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {

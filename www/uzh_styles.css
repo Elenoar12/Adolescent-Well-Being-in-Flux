@@ -1,0 +1,378 @@
+/* UZH Design System CSS Variables */
+:root {
+  --c-trueblack: 0, 0, 0;
+  --c-black: 18, 18, 18;
+  --c-white: 255, 255, 255;
+  --c-grey: 102, 102, 102;
+  --c-grey-medium: 233, 233, 233;
+  --c-grey-light: 250, 250, 250;
+  --c-text-grey: 76, 76, 76;
+  --c-blue: 0, 40, 165;
+}
+
+/* Font Import */
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,400;0,600;1,400;1,600&display=swap');
+
+/* Footer - UZH Style */
+.footer {
+  background-color: rgba(var(--c-grey-light), 1);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 2.5rem 3.5rem;
+  font-size: 1.25rem;
+  line-height: 1.5;
+  color: rgba(var(--c-text-grey), 1);
+  text-align: center;
+  font-family: "Source Sans Pro", sans-serif;
+  margin-top: 3rem;
+}
+
+@media (max-width: 700px) {
+  .footer {
+    font-size: 1rem;
+    padding: 2rem;
+  }
+}
+
+/* Slider Input - UZH Style */
+.irs {
+  font-family: "Source Sans Pro", sans-serif;
+  font-size: 1.25rem;
+}
+
+.irs-bar {
+  background: rgba(var(--c-blue), 1) !important;
+  border-top: 1px solid rgba(var(--c-blue), 1) !important;
+  border-bottom: 1px solid rgba(var(--c-blue), 1) !important;
+}
+
+.irs-handle {
+  background: rgba(var(--c-blue), 1) !important;
+  border: 2px solid rgba(var(--c-white), 1) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  width: 24px !important;
+  height: 24px !important;
+  top: 22px !important;
+}
+
+.irs-from,
+.irs-to,
+.irs-single {
+  background: rgba(var(--c-blue), 1) !important;
+  color: rgba(var(--c-white), 1) !important;
+  font-family: "Source Sans Pro", sans-serif !important;
+  font-size: 1.25rem !important;
+  font-weight: 400 !important;
+  padding: 0.5rem 0.75rem !important;
+  border-radius: 0.25rem !important;
+  white-space: nowrap !important;
+}
+
+.irs-line {
+  background: rgba(var(--c-grey-medium), 1) !important;
+  border: none !important;
+  height: 5px !important;
+  border-radius: 2.5px !important;
+}
+
+.irs-grid-text {
+  color: rgba(var(--c-text-grey), 1) !important;
+  font-family: "Source Sans Pro", sans-serif !important;
+  font-size: 1.25rem !important;
+  font-weight: 400 !important;
+  padding-top: 0.75rem !important;
+}
+
+.irs-min,
+.irs-max {
+  display: none !important;
+}
+
+/* Slider container styling */
+.form-group.shiny-input-container {
+  margin: 2rem;
+}
+
+.control-label {
+  font-family: "Source Sans Pro", sans-serif !important;
+  font-size: 1.5rem !important;
+  font-weight: 600 !important;
+  color: rgba(var(--c-black), 1) !important;
+}
+
+/* Radio Buttons - UZH Style */
+.radio {
+  margin-top: 0.25rem !important;
+  margin-bottom: 2rem !important;
+}
+
+/* Radio Button Title - UZH Style */
+.shiny-input-radiogroup .control-label {
+  font-family: "Source Sans Pro", sans-serif !important;
+  font-size: 1.5rem !important;
+  font-weight: 600 !important;
+  color: rgba(var(--c-black), 1) !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 2rem !important;
+  margin-left: 2rem !important;
+  margin-right: 2rem !important;
+}
+
+/* Navigation Bar - UZH Style */
+.navbar-default {
+  font-family: "Source Sans Pro", sans-serif !important;
+}
+
+.navbar-nav > li > a {
+  font-family: "Source Sans Pro", sans-serif !important;
+  font-size: 1.5rem !important;
+  font-weight: 400 !important;
+  color: rgba(18, 18, 18, 1) !important;
+}
+
+.navbar-brand {
+  font-family: "Source Sans Pro", sans-serif !important;
+  font-size: 2rem !important;
+  font-weight: 400 !important;
+  color: rgba(18, 18, 18, 1) !important;
+}
+
+/* Active tab styling */
+.navbar-nav > .active > a,
+.navbar-nav > .active > a:focus,
+.navbar-nav > .active > a:hover {
+  font-family: "Source Sans Pro", sans-serif !important;
+  font-size: 1.5rem !important;
+  font-weight: 400 !important;
+}
+
+/* Hover effects */
+.navbar-nav > li > a:hover,
+.navbar-nav > li > a:focus {
+  font-family: "Source Sans Pro", sans-serif !important;
+  font-size: 1.5rem !important;
+  font-weight: 400 !important;
+}
+
+/* Mobile responsive */
+@media (max-width: 700px) {
+  .navbar-nav > li > a {
+    font-size: 1.25rem !important;
+  }
+  
+  .navbar-brand {
+    font-size: 1.5rem !important;
+  }
+  
+  .navbar-nav > .active > a,
+  .navbar-nav > .active > a:focus,
+  .navbar-nav > .active > a:hover {
+    font-size: 1.25rem !important;
+  }
+  
+  .navbar-nav > li > a:hover,
+  .navbar-nav > li > a:focus {
+    font-size: 1.25rem !important;
+  }
+}
+
+/* Font sizes in ascending order */
+p {
+  font-family: "Source Sans Pro", sans-serif !important;
+  font-weight: 400 !important;
+  font-size: 1.375rem !important;
+  margin-bottom: 0rem;
+}
+
+h6 {
+  font-family: "Source Sans Pro", sans-serif !important;
+  font-weight: 400 !important;
+  font-size: 1.75rem !important;
+}
+
+h5 {
+  font-family: "Source Sans Pro", sans-serif !important;
+  font-weight: 400 !important;
+  font-size: 1.875rem !important;
+}
+
+h4 {
+  font-family: "Source Sans Pro", sans-serif !important;
+  font-weight: 400 !important;
+  font-size: 2.125rem !important;
+}
+
+h3 {
+  font-family: "Source Sans Pro", sans-serif !important;
+  font-weight: 400 !important;
+  font-size: 2.5rem !important;
+  margin-bottom: 0rem;
+}
+
+h2 {
+  font-family: "Source Sans Pro", sans-serif !important;
+  font-weight: 400 !important;
+  font-size: 2.75rem !important;
+}
+
+h1 {
+  font-family: "Source Sans Pro", sans-serif !important;
+  font-weight: 400 !important;
+  font-size: 3rem !important;
+}
+
+/* Tooltip text - UZH Style */
+.tooltip-text {
+  font-family: "Source Sans Pro", sans-serif !important;
+  font-weight: 400 !important;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Tooltip text links */
+.tooltip-text a {
+  font-family: "Source Sans Pro", sans-serif !important;
+}
+
+/* Tooltip icon - UZH Blue */
+.info-icon {
+  color: rgba(0, 40, 165, 1) !important;
+  text-shadow: 0 0 1px rgba(0, 40, 165, 1) !important;
+}
+
+/* Radio buttons - UZH Blue */
+.shiny-input-radiogroup .radio input[type="radio"]:checked::before {
+  background-color: rgba(0, 40, 165, 1) !important;
+}
+
+.shiny-input-radiogroup .radio input[type="radio"] {
+  border: 2px solid rgba(0, 40, 165, 0.5) !important;
+}
+
+.shiny-input-radiogroup .radio input[type="radio"]:checked {
+  border-color: rgba(0, 40, 165, 1) !important;
+  background-color: rgba(0, 40, 165, 1) !important;
+}
+
+.shiny-input-radiogroup .radio input[type="radio"]:focus {
+  border-color: rgba(0, 40, 165, 1) !important;
+  box-shadow: 0 0 0 2px rgba(0, 40, 165, 0.2) !important;
+}
+
+/* Tables - UZH Style */
+table {
+ font-family: "Source Sans Pro", sans-serif !important;
+ border-collapse: collapse !important;
+ width: 100% !important;
+ margin-bottom: 1rem !important;
+}
+
+table th {
+ font-family: "Source Sans Pro", sans-serif !important;
+ font-weight: 600 !important;
+ font-size: 1.375rem !important;
+ color: rgba(18, 18, 18, 1) !important;
+ background-color: rgba(250, 250, 250, 1) !important;
+ padding: 1rem !important;
+ border: 1px solid rgba(233, 233, 233, 1) !important;
+ text-align: left !important;
+}
+
+table td {
+ font-family: "Source Sans Pro", sans-serif !important;
+ font-weight: 400 !important;
+ font-size: 1.25rem !important;
+ color: rgba(76, 76, 76, 1) !important;
+ padding: 0.75rem 1rem !important;
+ border: 1px solid rgba(233, 233, 233, 1) !important;
+}
+
+table tbody tr:nth-child(even) {
+ background-color: rgba(250, 250, 250, 1) !important;
+}
+
+table tbody tr:hover {
+ background-color: rgba(245, 245, 251, 1) !important;
+}
+
+/* Base Table Styles from UZH CSS */
+        table {
+            border-collapse: collapse;
+            border-spacing: 0;
+            overflow: hidden;
+            float: none;
+            margin-top: 1em;
+            margin-bottom: 1em;
+            width: 100%;
+        }
+
+        table caption {
+            padding: 1em 0;
+        }
+
+        /* Table Headers */
+        table th {
+            font-size: 1.125rem;
+            line-height: 1.4;
+            font-weight: 600;
+            color: rgba(var(--c-black), 1);
+        }
+
+        @media(max-width: 700px) {
+            table th {
+                font-size: 1rem;
+            }
+        }
+
+        /* Table Cells */
+        table th, table td {
+            padding: 1rem;
+            vertical-align: top;
+        }
+
+        table th:first-child, table td:first-child {
+            border-left: none !important;
+            padding-left: 0;
+        }
+
+        table th:last-child, table td:last-child {
+            border-right: none !important;
+            padding-right: 0;
+        }
+
+        /* Nested Headers */
+        table th h3, table th h4, table th h5, 
+        table td h3, table td h4, table td h5 {
+            margin-top: 0;
+        }
+
+        /* Nested Paragraphs */
+        table th p, table th p:not(:first-child), 
+        table td p, table td p:not(:first-child) {
+            margin-top: 0;
+        }
+
+        table th p:last-child, table td p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Table Data Cells */
+        table td {
+            font-size: 1.125rem;
+            line-height: 1.6;
+            font-weight: 400;
+            color: rgba(var(--c-text-grey), 1);
+        }
+
+        @media(max-width: 700px) {
+            table td {
+                font-size: 1rem;
+            }
+        }
+
+        /* Responsive table wrapper */
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }

@@ -742,27 +742,46 @@ create_lpa_plot <- function(input_country, input_year = NULL) {
         means_df_filtered$Proportion, 
         "%)"
       )
+      
+      # Set factor levels for fallback case
+      means_df_filtered$ProfileLabelWithProp <- factor(means_df_filtered$ProfileLabelWithProp, 
+                                                       levels = unique(means_df_filtered$ProfileLabelWithProp))
     }
     
     # Reshape the data to long format for plotting
     means_long <- melt(means_df_filtered, id.vars = c("Variable", "LatentClass", "ProfileLabel", "ProfileLabelWithProp"),
                        measure.vars = "Estimate")
     
-    # Get unique ProfileLabelWithProp values to create proper scale mappings
-    unique_labels <- unique(means_df_filtered$ProfileLabelWithProp)
-    
-    # Extract the base profile names for mapping colors/shapes/linetypes
-    base_profiles <- gsub(" \\(.*?\\)", "", unique_labels)
-    
-    # Create named vectors for the scales
-    color_values <- c("#29af7f", "#bddf26", "#2e6f8e", "#482173")
-    names(color_values) <- unique_labels[match(c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk"), base_profiles)]
-    
-    linetype_values <- c("solid", "dashed", "dotted", "dotdash")
-    names(linetype_values) <- unique_labels[match(c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk"), base_profiles)]
-    
-    shape_values <- c(16, 17, 15, 18)
-    names(shape_values) <- unique_labels[match(c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk"), base_profiles)]
+    # Create scale mappings
+    if (use_mapping) {
+      # Get unique ProfileLabelWithProp values to create proper scale mappings
+      unique_labels <- unique(means_df_filtered$ProfileLabelWithProp)
+      
+      # Extract the base profile names for mapping colors/shapes/linetypes
+      base_profiles <- gsub(" \\(.*?\\)", "", unique_labels)
+      
+      # Create named vectors for the scales
+      color_values <- c("#29af7f", "#bddf26", "#2e6f8e", "#482173")
+      names(color_values) <- unique_labels[match(c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk"), base_profiles)]
+      
+      linetype_values <- c("solid", "dashed", "dotted", "dotdash")
+      names(linetype_values) <- unique_labels[match(c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk"), base_profiles)]
+      
+      shape_values <- c(16, 17, 15, 18)
+      names(shape_values) <- unique_labels[match(c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk"), base_profiles)]
+      
+    } else {
+      # Fallback scale mappings for generic profile labels
+      unique_labels <- unique(means_df_filtered$ProfileLabelWithProp)
+      color_values <- c("#482173", "#2e6f8e", "#29af7f", "#bddf26")
+      names(color_values) <- unique_labels
+      
+      linetype_values <- c("solid", "dashed", "dotted", "dotdash")
+      names(linetype_values) <- unique_labels
+      
+      shape_values <- c(16, 17, 15, 18)
+      names(shape_values) <- unique_labels
+    }
     
     # Create the plot with ggplot2 using ProfileLabelWithProp for both styling and legend
     plot <- ggplot(means_long, aes(x = Variable, y = value, 

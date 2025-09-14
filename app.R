@@ -1530,7 +1530,7 @@ ui <- fluidPage(
                                                       ),
                                                       selected = ""
                                           )
-                                 ),
+                                 )
                         ),
                         
                         # Default content shown when no variable is selected
@@ -1563,9 +1563,7 @@ ui <- fluidPage(
                         # Variable-specific content shown when variable is selected
                         conditionalPanel(
                           condition = "input.variable != 'None' && input.variable != ''",
-                          h3("Variable Composition"),
-                          br(),
-                          p("The response plots below show which subvariables the selected variable is composed of. It also presents the literal questions, scales and distribution of responses for a selected survey year."),
+                          
                           div(
                             style = "background-color: #f8f9fa; padding: 15px; border-left: 4px solid #007bff; margin-bottom: 20px;",
                             h5("Variable Definition", style = "margin-top: 0; color: #007bff;"),
@@ -1605,6 +1603,12 @@ ui <- fluidPage(
                                             )
                                    )
                           ),
+                          
+                          # Variable Composition Section (moved outside the flex container)
+                          h3("Variable Composition"),
+                          br(),
+                          p("Select a survey year to display response plots. The response plots below show which subvariables the selected variable is composed of. It also presents the literal questions, scales and distribution of responses for a selected survey year."),
+                          br(),
                           
                           # Response Plots (shown only when specific year is selected)
                           conditionalPanel(

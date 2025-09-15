@@ -192,8 +192,8 @@
         "Package": "MplusAutomation",
         "Type": "Package",
         "Title": "An R Package for Facilitating Large-Scale Latent Variable\nAnalyses in Mplus",
-        "Version": "1.1.1",
-        "Date": "2024-01-27",
+        "Version": "1.2",
+        "Date": "2025-08-25",
         "Authors@R": "c(person(\"Michael\", \"Hallquist\", role = c(\"aut\", \"cre\"),\n    email = \"michael.hallquist@gmail.com\"),\n    person(\"Joshua\", \"Wiley\", role = \"aut\",\n    email = \"jwiley.psych@gmail.com\"),\n    person(given = \"Caspar\", family =\"van Lissa\", role = \"ctb\",\n    email = \"c.j.vanlissa@uu.nl\"),\n    person(\"Daniel\", \"Morillo\", role = \"ctb\",\n    email = \"danivorillo@gmail.com\")\n    )",
         "Maintainer": "Michael Hallquist <michael.hallquist@gmail.com>",
         "Description": "Leverages the R language to automate latent variable model estimation\n\tand interpretation using 'Mplus', a powerful latent variable modeling program\n\tdeveloped by Muthen and Muthen (<https://www.statmodel.com>). Specifically, this package\n    provides routines for creating related groups of models, running batches of\n    models, and extracting and tabulating model parameters and fit statistics.",
@@ -207,15 +207,15 @@
         "LazyLoad": "yes",
         "LazyData": "yes",
         "VignetteBuilder": "knitr",
-        "RoxygenNote": "7.2.3",
+        "RoxygenNote": "7.3.2",
         "Encoding": "UTF-8",
         "Config/testthat/edition": "3",
         "NeedsCompilation": "no",
-        "Packaged": "2024-01-30 23:08:03 UTC; hallquist",
+        "Packaged": "2025-08-26 12:13:27 UTC; hallquist",
         "Author": "Michael Hallquist [aut, cre],\n  Joshua Wiley [aut],\n  Caspar van Lissa [ctb],\n  Daniel Morillo [ctb]",
         "Repository": "CRAN",
-        "Date/Publication": "2024-01-30 23:40:02 UTC",
-        "Built": "R 4.5.0; ; 2025-06-07 02:06:14 UTC; windows"
+        "Date/Publication": "2025-09-02 20:50:47 UTC",
+        "Built": "R 4.5.1; ; 2025-09-08 02:28:09 UTC; windows"
       }
     },
     "R6": {
@@ -4395,178 +4395,490 @@
   },
   "files": {
     "app.R": {
-      "checksum": "e4e9dcc8d891c0f9fd46696082a6fa46"
+      "checksum": "d56fe1e77bc9a38d01e6ff5260c4d143"
     },
     "data/hbsc_raw.csv": {
-      "checksum": "d3c4f1c5cb7a849a722ce5f6eebf748b"
+      "checksum": "6a25011aea3f5864fff35a573f35d5ee"
     },
     "data/hbsc_variables.csv": {
-      "checksum": "763891b9939955caf03d77fab15e0ea6"
+      "checksum": "2382cdaa1472e91afb39f8c089d2e101"
     },
-    "data/Regression/Switzerland/SurveyYear_2002/Switzerland_2002_multinom_profile~age+sex+ses.csv": {
-      "checksum": "0b1341f795d21fda5f8dd51bc736f1e2"
+    "data/LPA/Austria/2002/austria_2002_c4.csv": {
+      "checksum": "35a5baf1742cb9edafcab82251d5a38e"
     },
-    "data/Regression/Switzerland/SurveyYear_2002/Switzerland_2002_reg_ache_profile.csv": {
-      "checksum": "b0e5cf7f5ec3cdb039afe5b33a227459"
+    "data/LPA/Austria/2006/austria_2006_c4.csv": {
+      "checksum": "024448059cb15a93cb192e9ef64e1c3a"
     },
-    "data/Regression/Switzerland/SurveyYear_2002/Switzerland_2002_reg_ache_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "bbacc3055469c6f36c4175e63685a141"
+    "data/LPA/Austria/2010/austria_2010_c4.csv": {
+      "checksum": "3a8eb1fe27fcdafae621440797c755c4"
     },
-    "data/Regression/Switzerland/SurveyYear_2002/Switzerland_2002_reg_feeling_profile.csv": {
-      "checksum": "0a4c9698e30213ecc3c5357609687867"
+    "data/LPA/Austria/2014/austria_2014_c4.csv": {
+      "checksum": "78c413487e97e4b2661b787fb1e552a3"
     },
-    "data/Regression/Switzerland/SurveyYear_2002/Switzerland_2002_reg_feeling_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "fb553fe828ba4bde2600c18da04e7092"
+    "data/LPA/Austria/2018/austria_2018_c4.csv": {
+      "checksum": "a972d483a0d3988b58856cfa286d1d82"
     },
-    "data/Regression/Switzerland/SurveyYear_2002/Switzerland_2002_reg_health_profile.csv": {
-      "checksum": "9d90994ed34c31aea68867708063eff7"
+    "data/LPA/Austria/austria_c4.csv": {
+      "checksum": "5f1b239b5f538c19eccdd0f9d8351cce"
     },
-    "data/Regression/Switzerland/SurveyYear_2002/Switzerland_2002_reg_health_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "7db8f26bdfcd940e4e0932c45a839154"
+    "data/LPA/France/2002/france_2002_c4.csv": {
+      "checksum": "ffa2e60352c077cef8883d25c9d61be3"
     },
-    "data/Regression/Switzerland/SurveyYear_2002/Switzerland_2002_reg_lifesat_profile.csv": {
-      "checksum": "ca3840fdaf5a43ff811e15c8cfa5fa8c"
+    "data/LPA/France/2006/france_2006_c4.csv": {
+      "checksum": "9b6470c918bf03a5420c268b74254164"
     },
-    "data/Regression/Switzerland/SurveyYear_2002/Switzerland_2002_reg_lifesat_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "ac54525343bc83386a8a96aaf23205d6"
+    "data/LPA/France/2010/france_2010_c4.csv": {
+      "checksum": "5717bbdf7c863e1c4b73e2412103c7da"
     },
-    "data/Regression/Switzerland/SurveyYear_2006/Switzerland_2006_multinom_profile~age+sex+ses.csv": {
-      "checksum": "1894c2f0f7eeb83c823d5f2b8b26fab0"
+    "data/LPA/France/2014/france_2014_c4.csv": {
+      "checksum": "7f51fdd24a0bb269b1b55b3bdd144547"
     },
-    "data/Regression/Switzerland/SurveyYear_2006/Switzerland_2006_reg_ache_profile.csv": {
-      "checksum": "a94bbc0b6501336004bd6e0507d7967d"
+    "data/LPA/France/2018/france_2018_c4.csv": {
+      "checksum": "9f448d9169079b2bf13bf48ed673bcc7"
     },
-    "data/Regression/Switzerland/SurveyYear_2006/Switzerland_2006_reg_ache_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "88755c5ee1aa16ae87379a86ffacf89c"
+    "data/LPA/France/france_c4.csv": {
+      "checksum": "e9f8b2973900914023cbff5913cab963"
     },
-    "data/Regression/Switzerland/SurveyYear_2006/Switzerland_2006_reg_feeling_profile.csv": {
-      "checksum": "1ae689763c989e6737dc77f57dba02b3"
+    "data/LPA/Germany/2002/germany_2002_c4.csv": {
+      "checksum": "0549629d403d47580638d21e1afe7283"
     },
-    "data/Regression/Switzerland/SurveyYear_2006/Switzerland_2006_reg_feeling_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "97f8b0d5f428e716619da22a251a93a5"
+    "data/LPA/Germany/2006/germany_2006_c4.csv": {
+      "checksum": "8c043a732dfa01ede192261668078978"
     },
-    "data/Regression/Switzerland/SurveyYear_2006/Switzerland_2006_reg_health_profile.csv": {
-      "checksum": "4f410d938901c7e5234b64ee374aa0d7"
+    "data/LPA/Germany/2010/germany_2010_c4.csv": {
+      "checksum": "a451f01538c4de86ef1f2d777bb5fa44"
     },
-    "data/Regression/Switzerland/SurveyYear_2006/Switzerland_2006_reg_health_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "6b3b52c75f1816dd2601774b7293673f"
+    "data/LPA/Germany/2014/germany_2014_c4.csv": {
+      "checksum": "fd3711251c62ec83034c21ddf227c7bb"
     },
-    "data/Regression/Switzerland/SurveyYear_2006/Switzerland_2006_reg_lifesat_profile.csv": {
-      "checksum": "d6176edf01d6945145ab9cca27a04f36"
+    "data/LPA/Germany/2018/germany_2018_c4.csv": {
+      "checksum": "6f295a949eb879b10b683708d810ee57"
     },
-    "data/Regression/Switzerland/SurveyYear_2006/Switzerland_2006_reg_lifesat_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "be2cb66c8fb12a05133b46286d9b594c"
+    "data/LPA/Germany/germany_c4.csv": {
+      "checksum": "9d3c0c2b0da081a20a9a58bab6272b26"
     },
-    "data/Regression/Switzerland/SurveyYear_2010/Switzerland_2010_multinom_profile~age+sex+ses.csv": {
-      "checksum": "81f9a8777cc85fe58478f8273f8be3b6"
+    "data/LPA/Italy/2002/italy_2002_c4.csv": {
+      "checksum": "d67d02a7ab6e1e5809104f9264dc78d6"
     },
-    "data/Regression/Switzerland/SurveyYear_2010/Switzerland_2010_reg_ache_profile.csv": {
-      "checksum": "4814a10d7457df80337b2956546d35e0"
+    "data/LPA/Italy/2006/italy_2006_c4.csv": {
+      "checksum": "d5e212f3ee293cb1027a7a9ecaaa2e03"
     },
-    "data/Regression/Switzerland/SurveyYear_2010/Switzerland_2010_reg_ache_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "aa14360f00adb7b7b0fee89de1b7f563"
+    "data/LPA/Italy/2010/italy_2010_c4.csv": {
+      "checksum": "3e5984cb303965ac0f34de7dead7f8ba"
     },
-    "data/Regression/Switzerland/SurveyYear_2010/Switzerland_2010_reg_feeling_profile.csv": {
-      "checksum": "707899d1cc70a05a97816ecb8a442051"
+    "data/LPA/Italy/2014/italy_2014_c4.csv": {
+      "checksum": "cffe2e24c4206946154a3c6a82213d7e"
     },
-    "data/Regression/Switzerland/SurveyYear_2010/Switzerland_2010_reg_feeling_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "7bf9f5432c59b98e7ab9a74d9d2d5495"
+    "data/LPA/Italy/2018/italy_2018_c4.csv": {
+      "checksum": "794b4852d50508c7c903931fab04b4e8"
     },
-    "data/Regression/Switzerland/SurveyYear_2010/Switzerland_2010_reg_health_profile.csv": {
-      "checksum": "9d9245de1c486cfc9d9afee2e056623d"
+    "data/LPA/Italy/italy_c4.csv": {
+      "checksum": "008e0dd565c4bf25a3354d429350c801"
     },
-    "data/Regression/Switzerland/SurveyYear_2010/Switzerland_2010_reg_health_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "1e5d47913bb2d7ed53abc3622785a468"
+    "data/LPA/Switzerland/2002/switzerland_2002_c4.csv": {
+      "checksum": "2fe718931d1029347aeea149a47543cd"
     },
-    "data/Regression/Switzerland/SurveyYear_2010/Switzerland_2010_reg_lifesat_profile.csv": {
-      "checksum": "0ed8b7fcd1fa8cf543233d5350cc11da"
+    "data/LPA/Switzerland/2006/switzerland_2006_c4.csv": {
+      "checksum": "9121d080099d7b78b1ad71bc0f54387e"
     },
-    "data/Regression/Switzerland/SurveyYear_2010/Switzerland_2010_reg_lifesat_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "68a1acf09e52c93b9e6f2ba0f7afaa73"
+    "data/LPA/Switzerland/2010/switzerland_2010_c4.csv": {
+      "checksum": "a8d82f596d421a2bafc0763897b9dbf7"
     },
-    "data/Regression/Switzerland/SurveyYear_2014/Switzerland_2014_multinom_profile~age+sex+ses.csv": {
-      "checksum": "e7cfc7143c1aa42a3a1d6b72612d70db"
+    "data/LPA/Switzerland/2014/switzerland_2014_c4.csv": {
+      "checksum": "6a06e32bd566086a4e016d32abbcc22a"
     },
-    "data/Regression/Switzerland/SurveyYear_2014/Switzerland_2014_reg_ache_profile.csv": {
-      "checksum": "39b76340bc47664eda12183bf7d902b6"
+    "data/LPA/Switzerland/2018/switzerland_2018_c4.csv": {
+      "checksum": "f325aec610c95b98f2309fca032c2158"
     },
-    "data/Regression/Switzerland/SurveyYear_2014/Switzerland_2014_reg_ache_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "c0ebfc02dd79e160fba8d3556d33f754"
+    "data/LPA/Switzerland/switzerland_c4.csv": {
+      "checksum": "fedd7bbd29aaaee23ca58b06e8a64a53"
     },
-    "data/Regression/Switzerland/SurveyYear_2014/Switzerland_2014_reg_feeling_profile.csv": {
-      "checksum": "e516defd13ad9a39abe2f49c392ddeca"
+    "data/Regression/Switzerland/2002/Switzerland_2002_multinom_profile~age+sex+ses.csv": {
+      "checksum": "f83c5cbb39298e5ab2403423a7cf70f9"
     },
-    "data/Regression/Switzerland/SurveyYear_2014/Switzerland_2014_reg_feeling_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "abca93275eb72d3c10c112c7d84ea06b"
+    "data/Regression/Switzerland/2002/Switzerland_2002_reg_ache_profile.csv": {
+      "checksum": "b64a719e79cabc745987dacdc47106cb"
     },
-    "data/Regression/Switzerland/SurveyYear_2014/Switzerland_2014_reg_health_profile.csv": {
-      "checksum": "997ad3152abd83e907d3cdc5f8f4b126"
+    "data/Regression/Switzerland/2002/Switzerland_2002_reg_ache_profile+age+sex+ses.csv": {
+      "checksum": "0b42737bfa4fe05cbae2511ba74b2671"
     },
-    "data/Regression/Switzerland/SurveyYear_2014/Switzerland_2014_reg_health_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "36b9f1d1a74d963b755b1c563100d390"
+    "data/Regression/Switzerland/2002/Switzerland_2002_reg_ache_profile+age+sex+ses+profilexsex.csv": {
+      "checksum": "44c8b21cab06dd64a2c23d4c4ddc8b91"
     },
-    "data/Regression/Switzerland/SurveyYear_2014/Switzerland_2014_reg_lifesat_profile.csv": {
-      "checksum": "cea42eb2fc51de6d698f703db8ed3493"
+    "data/Regression/Switzerland/2002/Switzerland_2002_reg_ache_profile+ses_FEMALES.csv": {
+      "checksum": "cd155eb6157d9af82ac765515270960f"
     },
-    "data/Regression/Switzerland/SurveyYear_2014/Switzerland_2014_reg_lifesat_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "ed2c061b9407ff04803ff487195a72bd"
+    "data/Regression/Switzerland/2002/Switzerland_2002_reg_ache_profile+ses_MALES.csv": {
+      "checksum": "6ed2e2ad7646a46134e566101a570af2"
     },
-    "data/Regression/Switzerland/SurveyYear_2018/Switzerland_2018_multinom_profile~age+sex+ses.csv": {
-      "checksum": "2c0b5a527662fef45777ba535163c4a9"
+    "data/Regression/Switzerland/2002/Switzerland_2002_reg_feeling_profile.csv": {
+      "checksum": "14c651480ffe7920750aced78df0e5e5"
     },
-    "data/Regression/Switzerland/SurveyYear_2018/Switzerland_2018_reg_ache_profile.csv": {
-      "checksum": "c2ec39742a2e36ebc010b0a5a3a89db7"
+    "data/Regression/Switzerland/2002/Switzerland_2002_reg_feeling_profile+age+sex+ses.csv": {
+      "checksum": "6f33d00bdfd4b3da8c5a0950661f22cf"
     },
-    "data/Regression/Switzerland/SurveyYear_2018/Switzerland_2018_reg_ache_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "6a9af9ef9616c332fa2c24b0d64da40a"
+    "data/Regression/Switzerland/2002/Switzerland_2002_reg_feeling_profile+age+sex+ses+profilexsex.csv": {
+      "checksum": "e0e6014eb23f373623c442dcd9c2743a"
     },
-    "data/Regression/Switzerland/SurveyYear_2018/Switzerland_2018_reg_feeling_profile.csv": {
-      "checksum": "71c009f48244f2f3a85abc7af64878fd"
+    "data/Regression/Switzerland/2002/Switzerland_2002_reg_feeling_profile+ses_FEMALES.csv": {
+      "checksum": "988d55ceb9beecc78cd32c54cfcc5e4d"
     },
-    "data/Regression/Switzerland/SurveyYear_2018/Switzerland_2018_reg_feeling_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "f0312254c0aab5d29626b0010c359f3e"
+    "data/Regression/Switzerland/2002/Switzerland_2002_reg_feeling_profile+ses_MALES.csv": {
+      "checksum": "9568b99583bd34d3be8eb344900f155b"
     },
-    "data/Regression/Switzerland/SurveyYear_2018/Switzerland_2018_reg_health_profile.csv": {
-      "checksum": "05e46faffcd1610f78987a5cc5bf1289"
+    "data/Regression/Switzerland/2002/Switzerland_2002_reg_health_profile.csv": {
+      "checksum": "ff7d00afd23804954a415dd20acfc14c"
     },
-    "data/Regression/Switzerland/SurveyYear_2018/Switzerland_2018_reg_health_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "e06db02fb377148dc519159e87471011"
+    "data/Regression/Switzerland/2002/Switzerland_2002_reg_health_profile+age+sex+ses.csv": {
+      "checksum": "5551bf064ca937f9d0c9e1fe3fab6061"
     },
-    "data/Regression/Switzerland/SurveyYear_2018/Switzerland_2018_reg_lifesat_profile.csv": {
-      "checksum": "ff4a547ef55d711d79c0a724bd24ff66"
+    "data/Regression/Switzerland/2002/Switzerland_2002_reg_health_profile+age+sex+ses+profilexsex.csv": {
+      "checksum": "4c737b4c06dc22ad74429c55b306332f"
     },
-    "data/Regression/Switzerland/SurveyYear_2018/Switzerland_2018_reg_lifesat_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "a7192c01725af7f4c3da4bd59f93478a"
+    "data/Regression/Switzerland/2002/Switzerland_2002_reg_health_profile+ses_FEMALES.csv": {
+      "checksum": "2941e603d7533261e58a54a3e3db937a"
+    },
+    "data/Regression/Switzerland/2002/Switzerland_2002_reg_health_profile+ses_MALES.csv": {
+      "checksum": "0dd021e4f3d257511640d11b79bb2b11"
+    },
+    "data/Regression/Switzerland/2002/Switzerland_2002_reg_lifesat_profile.csv": {
+      "checksum": "4a610c75feaed213808927429992f7d9"
+    },
+    "data/Regression/Switzerland/2002/Switzerland_2002_reg_lifesat_profile+age+sex+ses.csv": {
+      "checksum": "5aa5c901347b6807fdb2eb89fa133af4"
+    },
+    "data/Regression/Switzerland/2002/Switzerland_2002_reg_lifesat_profile+age+sex+ses+profilexsex.csv": {
+      "checksum": "ca43f04f05fb95b3d6c6dc6ac3376e16"
+    },
+    "data/Regression/Switzerland/2002/Switzerland_2002_reg_lifesat_profile+ses_FEMALES.csv": {
+      "checksum": "e18eea62fc7439033447bd11832a9c09"
+    },
+    "data/Regression/Switzerland/2002/Switzerland_2002_reg_lifesat_profile+ses_MALES.csv": {
+      "checksum": "fe3e3292531d0e1c89e16aa04ae696b9"
+    },
+    "data/Regression/Switzerland/2006/Switzerland_2006_multinom_profile~age+sex+ses.csv": {
+      "checksum": "0e8e2f1dd20641bfaabe6772b0582192"
+    },
+    "data/Regression/Switzerland/2006/Switzerland_2006_reg_ache_profile.csv": {
+      "checksum": "770231a956d73a94f77b0e328d14c498"
+    },
+    "data/Regression/Switzerland/2006/Switzerland_2006_reg_ache_profile+age+sex+ses.csv": {
+      "checksum": "18eb14a2fb8cac152847299807986b00"
+    },
+    "data/Regression/Switzerland/2006/Switzerland_2006_reg_ache_profile+age+sex+ses+profilexsex.csv": {
+      "checksum": "1fccd2ea9d57c9c5e4614e7991752ec7"
+    },
+    "data/Regression/Switzerland/2006/Switzerland_2006_reg_ache_profile+ses_FEMALES.csv": {
+      "checksum": "1b5885a2f91f1449d736e4b6cf243e4a"
+    },
+    "data/Regression/Switzerland/2006/Switzerland_2006_reg_ache_profile+ses_MALES.csv": {
+      "checksum": "189ac4a845e42d6ec29c6d48e43d4c1a"
+    },
+    "data/Regression/Switzerland/2006/Switzerland_2006_reg_feeling_profile.csv": {
+      "checksum": "1bb5ed91433f276808fbb2423eac2e2c"
+    },
+    "data/Regression/Switzerland/2006/Switzerland_2006_reg_feeling_profile+age+sex+ses.csv": {
+      "checksum": "53b95a7be1d59ce91b5283c04407f209"
+    },
+    "data/Regression/Switzerland/2006/Switzerland_2006_reg_feeling_profile+age+sex+ses+profilexsex.csv": {
+      "checksum": "7830549f494c130507a9e4901a2d0e04"
+    },
+    "data/Regression/Switzerland/2006/Switzerland_2006_reg_feeling_profile+ses_FEMALES.csv": {
+      "checksum": "7cc29041c77954755157809c8f76a246"
+    },
+    "data/Regression/Switzerland/2006/Switzerland_2006_reg_feeling_profile+ses_MALES.csv": {
+      "checksum": "2fecfb1d2afa5b7ee18d2d332aba44b1"
+    },
+    "data/Regression/Switzerland/2006/Switzerland_2006_reg_health_profile.csv": {
+      "checksum": "7edd09a46f9f43ddbb7c1ef247c4fba4"
+    },
+    "data/Regression/Switzerland/2006/Switzerland_2006_reg_health_profile+age+sex+ses.csv": {
+      "checksum": "9a33d5a0d668881bcb7c0dd5875991e6"
+    },
+    "data/Regression/Switzerland/2006/Switzerland_2006_reg_health_profile+age+sex+ses+profilexsex.csv": {
+      "checksum": "b40d0975805ec91e59316fecff9e0071"
+    },
+    "data/Regression/Switzerland/2006/Switzerland_2006_reg_health_profile+ses_FEMALES.csv": {
+      "checksum": "3333d07c748a279db1003d7eea910746"
+    },
+    "data/Regression/Switzerland/2006/Switzerland_2006_reg_health_profile+ses_MALES.csv": {
+      "checksum": "bf8cba9ff8dac651d7c7561163f3b34b"
+    },
+    "data/Regression/Switzerland/2006/Switzerland_2006_reg_lifesat_profile.csv": {
+      "checksum": "e8a7504bc7d35a2a9ecdeb88afdaded9"
+    },
+    "data/Regression/Switzerland/2006/Switzerland_2006_reg_lifesat_profile+age+sex+ses.csv": {
+      "checksum": "eb45809ce0423de566b4135f3d8011e0"
+    },
+    "data/Regression/Switzerland/2006/Switzerland_2006_reg_lifesat_profile+age+sex+ses+profilexsex.csv": {
+      "checksum": "a3116aa6ba657179692062e36d0ebd6f"
+    },
+    "data/Regression/Switzerland/2006/Switzerland_2006_reg_lifesat_profile+ses_FEMALES.csv": {
+      "checksum": "2e9b41158ffda41a9b12ef8e5689fddd"
+    },
+    "data/Regression/Switzerland/2006/Switzerland_2006_reg_lifesat_profile+ses_MALES.csv": {
+      "checksum": "160e436690d048327d4e8de3399c72f4"
+    },
+    "data/Regression/Switzerland/2010/Switzerland_2010_multinom_profile~age+sex+ses.csv": {
+      "checksum": "a60ca0f146508647b0b31e45655d2f83"
+    },
+    "data/Regression/Switzerland/2010/Switzerland_2010_reg_ache_profile.csv": {
+      "checksum": "ec090cb3d455e543f8511bad7cba2700"
+    },
+    "data/Regression/Switzerland/2010/Switzerland_2010_reg_ache_profile+age+sex+ses.csv": {
+      "checksum": "2f64c0240ba5e3e59be2c794e4238218"
+    },
+    "data/Regression/Switzerland/2010/Switzerland_2010_reg_ache_profile+age+sex+ses+profilexsex.csv": {
+      "checksum": "70debb0a21395b4b23bb1b772943476f"
+    },
+    "data/Regression/Switzerland/2010/Switzerland_2010_reg_ache_profile+ses_FEMALES.csv": {
+      "checksum": "7f0533aaf06b518040bf0a9acf2fec42"
+    },
+    "data/Regression/Switzerland/2010/Switzerland_2010_reg_ache_profile+ses_MALES.csv": {
+      "checksum": "76db4cc4e1a15a2d4568cd128ee3f925"
+    },
+    "data/Regression/Switzerland/2010/Switzerland_2010_reg_feeling_profile.csv": {
+      "checksum": "c955ba0612070b21d6ac82aea9c52e47"
+    },
+    "data/Regression/Switzerland/2010/Switzerland_2010_reg_feeling_profile+age+sex+ses.csv": {
+      "checksum": "ff34eb696e3c9d5b31e6e9024d338bcc"
+    },
+    "data/Regression/Switzerland/2010/Switzerland_2010_reg_feeling_profile+age+sex+ses+profilexsex.csv": {
+      "checksum": "9649e6f4257cf8e1d0296422ab123563"
+    },
+    "data/Regression/Switzerland/2010/Switzerland_2010_reg_feeling_profile+ses_FEMALES.csv": {
+      "checksum": "62ee2d66b6df4ed5444f487aae1c24cf"
+    },
+    "data/Regression/Switzerland/2010/Switzerland_2010_reg_feeling_profile+ses_MALES.csv": {
+      "checksum": "4e13077b0cf28bb2e5ab49d4bfba678e"
+    },
+    "data/Regression/Switzerland/2010/Switzerland_2010_reg_health_profile.csv": {
+      "checksum": "87b52e6ead456ee833ad5bb8be3264b0"
+    },
+    "data/Regression/Switzerland/2010/Switzerland_2010_reg_health_profile+age+sex+ses.csv": {
+      "checksum": "acb38f7fefb65780da42a7f7e24885ee"
+    },
+    "data/Regression/Switzerland/2010/Switzerland_2010_reg_health_profile+age+sex+ses+profilexsex.csv": {
+      "checksum": "741e7ce82354890842917c604dc7210e"
+    },
+    "data/Regression/Switzerland/2010/Switzerland_2010_reg_health_profile+ses_FEMALES.csv": {
+      "checksum": "9433acdfe3851aad45592d4ae1da316d"
+    },
+    "data/Regression/Switzerland/2010/Switzerland_2010_reg_health_profile+ses_MALES.csv": {
+      "checksum": "8762ab37cb7760002caab4cbbac615fe"
+    },
+    "data/Regression/Switzerland/2010/Switzerland_2010_reg_lifesat_profile.csv": {
+      "checksum": "34f9cc9343d60207568db8d568ea9993"
+    },
+    "data/Regression/Switzerland/2010/Switzerland_2010_reg_lifesat_profile+age+sex+ses.csv": {
+      "checksum": "5653008293ec41696492bfbd401d8485"
+    },
+    "data/Regression/Switzerland/2010/Switzerland_2010_reg_lifesat_profile+age+sex+ses+profilexsex.csv": {
+      "checksum": "a39a3aab4a2d0508b7ddf37e2b372e64"
+    },
+    "data/Regression/Switzerland/2010/Switzerland_2010_reg_lifesat_profile+ses_FEMALES.csv": {
+      "checksum": "a2d24e000a37f2c477f63eb6fcd03035"
+    },
+    "data/Regression/Switzerland/2010/Switzerland_2010_reg_lifesat_profile+ses_MALES.csv": {
+      "checksum": "5f79a16deeafafbaf421f856b9f427cb"
+    },
+    "data/Regression/Switzerland/2014/Switzerland_2014_multinom_profile~age+sex+ses.csv": {
+      "checksum": "6a34f51efd4fbac5e5093852bf7c07e8"
+    },
+    "data/Regression/Switzerland/2014/Switzerland_2014_reg_ache_profile.csv": {
+      "checksum": "03c5b7e28c83a3a0c8d2fabd85a22a59"
+    },
+    "data/Regression/Switzerland/2014/Switzerland_2014_reg_ache_profile+age+sex+ses.csv": {
+      "checksum": "1406996dec0e7bb3abb57362e8679149"
+    },
+    "data/Regression/Switzerland/2014/Switzerland_2014_reg_ache_profile+age+sex+ses+profilexsex.csv": {
+      "checksum": "e6f4b2437baf5de6f27e2b2a51aebf70"
+    },
+    "data/Regression/Switzerland/2014/Switzerland_2014_reg_ache_profile+ses_FEMALES.csv": {
+      "checksum": "12b7d4cdbb31b1ed8a990b6568853336"
+    },
+    "data/Regression/Switzerland/2014/Switzerland_2014_reg_ache_profile+ses_MALES.csv": {
+      "checksum": "d25d37d6c5cb110493a83d2d41c597f4"
+    },
+    "data/Regression/Switzerland/2014/Switzerland_2014_reg_feeling_profile.csv": {
+      "checksum": "8ffed653b6ddedf7f37fa2288673d57a"
+    },
+    "data/Regression/Switzerland/2014/Switzerland_2014_reg_feeling_profile+age+sex+ses.csv": {
+      "checksum": "f049e51416ee9c9a591c4c0def817de1"
+    },
+    "data/Regression/Switzerland/2014/Switzerland_2014_reg_feeling_profile+age+sex+ses+profilexsex.csv": {
+      "checksum": "cf379d52d2b65bc95d12d092c074b621"
+    },
+    "data/Regression/Switzerland/2014/Switzerland_2014_reg_feeling_profile+ses_FEMALES.csv": {
+      "checksum": "f7abbcc50b7c2535fcc5e8399d786151"
+    },
+    "data/Regression/Switzerland/2014/Switzerland_2014_reg_feeling_profile+ses_MALES.csv": {
+      "checksum": "20d24740c0263d938e70147611f9d6fd"
+    },
+    "data/Regression/Switzerland/2014/Switzerland_2014_reg_health_profile.csv": {
+      "checksum": "76725714695fb242a73af2ca103fe3e2"
+    },
+    "data/Regression/Switzerland/2014/Switzerland_2014_reg_health_profile+age+sex+ses.csv": {
+      "checksum": "534f7ade12c5594d4ebb2f99001c9527"
+    },
+    "data/Regression/Switzerland/2014/Switzerland_2014_reg_health_profile+age+sex+ses+profilexsex.csv": {
+      "checksum": "077372ceb05fcbfaee122f7bb46f2a31"
+    },
+    "data/Regression/Switzerland/2014/Switzerland_2014_reg_health_profile+ses_FEMALES.csv": {
+      "checksum": "182be13045df863e0be814f0e91e3085"
+    },
+    "data/Regression/Switzerland/2014/Switzerland_2014_reg_health_profile+ses_MALES.csv": {
+      "checksum": "a17eb567049cd30b851c8d2665328926"
+    },
+    "data/Regression/Switzerland/2014/Switzerland_2014_reg_lifesat_profile.csv": {
+      "checksum": "f4eb03a17f50e30639ec60a37996fd17"
+    },
+    "data/Regression/Switzerland/2014/Switzerland_2014_reg_lifesat_profile+age+sex+ses.csv": {
+      "checksum": "04ce375316312554ed9733d8afa45130"
+    },
+    "data/Regression/Switzerland/2014/Switzerland_2014_reg_lifesat_profile+age+sex+ses+profilexsex.csv": {
+      "checksum": "02e4d9440bfc920429dde242de8cfe40"
+    },
+    "data/Regression/Switzerland/2014/Switzerland_2014_reg_lifesat_profile+ses_FEMALES.csv": {
+      "checksum": "06637062bdbede86061dc5705a43974a"
+    },
+    "data/Regression/Switzerland/2014/Switzerland_2014_reg_lifesat_profile+ses_MALES.csv": {
+      "checksum": "2d3eff45cc8dd5a296f5b627f622d35c"
+    },
+    "data/Regression/Switzerland/2018/Switzerland_2018_multinom_profile~age+sex+ses.csv": {
+      "checksum": "8779516fc2818d3624d469db1ca3efb4"
+    },
+    "data/Regression/Switzerland/2018/Switzerland_2018_reg_ache_profile.csv": {
+      "checksum": "724c1a958ed5c405288edb908002e168"
+    },
+    "data/Regression/Switzerland/2018/Switzerland_2018_reg_ache_profile+age+sex+ses.csv": {
+      "checksum": "54b8a103490e1c89e6b7ccb3226b9c72"
+    },
+    "data/Regression/Switzerland/2018/Switzerland_2018_reg_ache_profile+age+sex+ses+profilexsex.csv": {
+      "checksum": "6beda8a313f1048b73c85f37ac037e12"
+    },
+    "data/Regression/Switzerland/2018/Switzerland_2018_reg_ache_profile+ses_FEMALES.csv": {
+      "checksum": "ad4d805b16fb5e5a2e77a1bdbb4fba02"
+    },
+    "data/Regression/Switzerland/2018/Switzerland_2018_reg_ache_profile+ses_MALES.csv": {
+      "checksum": "cc65cd6bf14ced48461c1df73fa92057"
+    },
+    "data/Regression/Switzerland/2018/Switzerland_2018_reg_feeling_profile.csv": {
+      "checksum": "cbd276712356d56c59dde6ad857fbb1c"
+    },
+    "data/Regression/Switzerland/2018/Switzerland_2018_reg_feeling_profile+age+sex+ses.csv": {
+      "checksum": "ac626d4652d2ac6ed6f0a980b6a431af"
+    },
+    "data/Regression/Switzerland/2018/Switzerland_2018_reg_feeling_profile+age+sex+ses+profilexsex.csv": {
+      "checksum": "e5e6e14f3fbdd4fd599ab4b68e666546"
+    },
+    "data/Regression/Switzerland/2018/Switzerland_2018_reg_feeling_profile+ses_FEMALES.csv": {
+      "checksum": "57282ebb256fd203440323c7cca463f0"
+    },
+    "data/Regression/Switzerland/2018/Switzerland_2018_reg_feeling_profile+ses_MALES.csv": {
+      "checksum": "8d96b7337c8fbb23f6eb8f6197a9c8b7"
+    },
+    "data/Regression/Switzerland/2018/Switzerland_2018_reg_health_profile.csv": {
+      "checksum": "1a3c39c530f41d8ac5de6955c40d5512"
+    },
+    "data/Regression/Switzerland/2018/Switzerland_2018_reg_health_profile+age+sex+ses.csv": {
+      "checksum": "7d10c9bc8df87a3c59cca89c99b3a6be"
+    },
+    "data/Regression/Switzerland/2018/Switzerland_2018_reg_health_profile+age+sex+ses+profilexsex.csv": {
+      "checksum": "aa3e45069677f948608eb3d446488ac6"
+    },
+    "data/Regression/Switzerland/2018/Switzerland_2018_reg_health_profile+ses_FEMALES.csv": {
+      "checksum": "85899a472220176867424be0875ffc00"
+    },
+    "data/Regression/Switzerland/2018/Switzerland_2018_reg_health_profile+ses_MALES.csv": {
+      "checksum": "05f812e33ea31202b46410924e51c8ef"
+    },
+    "data/Regression/Switzerland/2018/Switzerland_2018_reg_lifesat_profile.csv": {
+      "checksum": "557dcb19714c56547344d676180b324c"
+    },
+    "data/Regression/Switzerland/2018/Switzerland_2018_reg_lifesat_profile+age+sex+ses.csv": {
+      "checksum": "4b6b794dbdc515b9800cbeb2d4964794"
+    },
+    "data/Regression/Switzerland/2018/Switzerland_2018_reg_lifesat_profile+age+sex+ses+profilexsex.csv": {
+      "checksum": "c371148df786a892764df9554c2745b7"
+    },
+    "data/Regression/Switzerland/2018/Switzerland_2018_reg_lifesat_profile+ses_FEMALES.csv": {
+      "checksum": "2a20461d5908ffc0ef3dc7d97ed80522"
+    },
+    "data/Regression/Switzerland/2018/Switzerland_2018_reg_lifesat_profile+ses_MALES.csv": {
+      "checksum": "f174ee978f244595350540d8a505a757"
     },
     "data/Regression/Switzerland/Switzerland_all_multinom_profile~age+sex+ses.csv": {
-      "checksum": "a834fc430fa51b9af50c1cfaadaa70b6"
+      "checksum": "fb7872b58aae984b2cab8d27eb576ce6"
     },
     "data/Regression/Switzerland/Switzerland_all_reg_ache_profile.csv": {
-      "checksum": "187cf21a565f87add42992ea6b885d36"
+      "checksum": "49a3a052a0613cf611fd97c8e107aea8"
+    },
+    "data/Regression/Switzerland/Switzerland_all_reg_ache_profile+age+sex+ses.csv": {
+      "checksum": "67170a954c4787a859c06e8be1bd5c91"
     },
     "data/Regression/Switzerland/Switzerland_all_reg_ache_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "ff6d8cc0a8c9eaba066e543eece21731"
+      "checksum": "0d69d0fae462c73559bb2d283ea8de69"
+    },
+    "data/Regression/Switzerland/Switzerland_all_reg_ache_profile+ses_FEMALES.csv": {
+      "checksum": "baef9e37cd334c8a97a5cb5edc0a77cc"
+    },
+    "data/Regression/Switzerland/Switzerland_all_reg_ache_profile+ses_MALES.csv": {
+      "checksum": "c6101772f940ace338c4254345bc5ef8"
     },
     "data/Regression/Switzerland/Switzerland_all_reg_feeling_profile.csv": {
-      "checksum": "cecd9703f01e9a3704104f10e6b0f023"
+      "checksum": "1fbd64b33e992b097e7c195639b9103a"
+    },
+    "data/Regression/Switzerland/Switzerland_all_reg_feeling_profile+age+sex+ses.csv": {
+      "checksum": "8db214712f87a6ed1a701c7c61416c07"
     },
     "data/Regression/Switzerland/Switzerland_all_reg_feeling_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "372f29558de590c24bc36f59e50211fd"
+      "checksum": "5dd17cd373acfeb7fe54db7e1216bff1"
+    },
+    "data/Regression/Switzerland/Switzerland_all_reg_feeling_profile+ses_FEMALES.csv": {
+      "checksum": "19ee7ef5b03e58b8efd61389ef6f52b4"
+    },
+    "data/Regression/Switzerland/Switzerland_all_reg_feeling_profile+ses_MALES.csv": {
+      "checksum": "0d04f3fc28bc7c10b33a910bd99847d9"
     },
     "data/Regression/Switzerland/Switzerland_all_reg_health_profile.csv": {
-      "checksum": "3da7f8f71a610773651284d7e194da1d"
+      "checksum": "f643f94549af0f0a264041cd1291f2c4"
+    },
+    "data/Regression/Switzerland/Switzerland_all_reg_health_profile+age+sex+ses.csv": {
+      "checksum": "0c6eb43104829271c3dd58b341fc6303"
     },
     "data/Regression/Switzerland/Switzerland_all_reg_health_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "5638a87fe4ad686597be75dce33adcce"
+      "checksum": "e53320426e450aefc01555981c74e28d"
+    },
+    "data/Regression/Switzerland/Switzerland_all_reg_health_profile+ses_FEMALES.csv": {
+      "checksum": "2c1e11032ee21a7c775b567bc0f75fd2"
+    },
+    "data/Regression/Switzerland/Switzerland_all_reg_health_profile+ses_MALES.csv": {
+      "checksum": "1be70a9f7143b8eb6df538a55bb8fd2d"
     },
     "data/Regression/Switzerland/Switzerland_all_reg_lifesat_profile.csv": {
-      "checksum": "756408344a31a5e577bce10ae2f58f9a"
+      "checksum": "65c827b535aa7c55bb33e08712ba391e"
+    },
+    "data/Regression/Switzerland/Switzerland_all_reg_lifesat_profile+age+sex+ses.csv": {
+      "checksum": "1285ee8ad54339cea3962bc9328e3a97"
     },
     "data/Regression/Switzerland/Switzerland_all_reg_lifesat_profile+age+sex+ses+profilexsex.csv": {
-      "checksum": "44ae2fa66a545c37c01c509dedd842fd"
+      "checksum": "daf9d50684c7b76cddfda764c4ef8f4b"
+    },
+    "data/Regression/Switzerland/Switzerland_all_reg_lifesat_profile+ses_FEMALES.csv": {
+      "checksum": "d796e8c63a8f8cdf4bb62eca57a0bb22"
+    },
+    "data/Regression/Switzerland/Switzerland_all_reg_lifesat_profile+ses_MALES.csv": {
+      "checksum": "4f4f4bfe9805cef7cc77994e632dafd1"
+    },
+    "LPA Plots CH.png": {
+      "checksum": "48a367d04673b98029d531ad65ca048b"
     },
     "README.md": {
       "checksum": "9745cd65788473ae7034defd4fd9e095"
+    },
+    "www/uzh_styles.css": {
+      "checksum": "ef26e50001dc63dfea18b78efea638eb"
     }
   },
   "users": null

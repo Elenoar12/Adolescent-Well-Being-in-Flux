@@ -1279,14 +1279,15 @@ ui <- fluidPage(
                         
                         fluidRow(
                           column(width = 12,
-                                 tags$img(src = "www/logo_UZH.png", height = "80px", style = "margin: 10px;"),
-                                 tags$img(src = "www/logo_PUK.png", height = "80px", style = "margin: 10px;"),
-                                 tags$img(src = "www/logo_JC.png", height = "80px", style = "margin: 10px;"),
-                                 tags$img(src = "www/logo_PRC.png", height = "80px", style = "margin: 10px;")
+                                 tags$img(src = "logo_UZH.png", height = "80px", style = "margin: 10px;"),
+                                 tags$img(src = "logo_PUK.png", height = "80px", style = "margin: 10px;"),
+                                 tags$img(src = "logo_JC.png", height = "80px", style = "margin: 10px;"),
+                                 tags$img(src = "logo_PRC.png", height = "80px", style = "margin: 10px;")
                           )
                         ),
                         
                         p("We gratefully acknowledge the UZH Population Research Center for supporting this research through a Seed Grant."),
+                        br(),
                         p("This app provides insights into adolescent well-being through descriptive statistics and latent profile analysis (LPA)."),
                         p("Use the navigation menu to explore the data.")
                       )

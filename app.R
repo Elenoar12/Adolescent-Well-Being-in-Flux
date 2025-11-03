@@ -8,6 +8,7 @@ library(giscoR)
 library(fmsb)
 library(MplusAutomation)
 library(reshape2)
+library(readxl)
 
 # Load data
 # data_path = r"(C:\Users\hanst\OneDrive - Universität Zürich UZH\Datenanalyse\hbsc_allrel.csv)"
@@ -647,6 +648,8 @@ desc_histograms <- function(data, countryname = NULL, surveyyear = NULL, variabl
 
 ### LPA panel data processing
 
+hbsc_labels <- read_excel("data/hbsc_labels.xlsx")
+
 # Nested directory for profile mapping
 profile_mapping <- list(
   "Switzerland" = list(
@@ -659,16 +662,86 @@ profile_mapping <- list(
   )
 )
 
+# Function to convert hbsc_labels to nested list structure (removes NAs properly)
+convert_to_profile_mapping <- function(df) {
+  # Initialize the result list
+  result <- list()
+
+  # Iterate through each row (each country)
+  for (i in 1:nrow(df)) {
+    country <- df$Country[i]
+
+    # Create country entry
+    result[[country]] <- list()
+
+    # Add "ALL" (Overall profiles)
+    overall_cols <- paste0("Overall_Profile_", 1:5)
+    overall_values <- as.character(df[i, overall_cols])
+    # Remove NAs, empty strings, and the string "NA"
+    overall_values <- overall_values[!is.na(overall_values) & overall_values != "" & overall_values != "NA"]
+    if (length(overall_values) > 0) {
+      result[[country]][["ALL"]] <- overall_values
+    }
+
+    # Add year-specific profiles
+    years <- c("2002", "2006", "2010", "2014", "2018")
+    for (year in years) {
+      year_cols <- paste0(year, "_Profile_", 1:5)
+      year_values <- as.character(df[i, year_cols])
+      # Remove NAs, empty strings, and the string "NA"
+      year_values <- year_values[!is.na(year_values) & year_values != "" & year_values != "NA"]
+      if (length(year_values) > 0) {
+        result[[country]][[year]] <- year_values
+      }
+    }
+  }
+
+  return(result)
+}
+
+# Convert the data
+profile_mapping <- convert_to_profile_mapping(hbsc_labels)
+
 # Function to create LPA line plot
 create_lpa_plot <- function(input_country, input_year = NULL) {
   
+  # Define the master lookup table for all possible profile labels
+  profile_styles <- data.frame(
+    label = c("Low risk", 
+              "Slightly elevated substance use", 
+              "Moderate substance use", 
+              "Slightly reduced high risk", 
+              "High sleep problems", 
+              "High alcohol use", 
+              "High risk"),
+    order = 1:7,
+    color = c("#29af7f", "#bddf26", "#ffd92f", "#fc8d59", "#2e6f8e", "#8856a7", "#482173"),
+    linetype = c("solid", "dashed", "longdash", "dotdash", "dotted", "dashed", "solid"),
+    shape = c(16, 17, 18, 15, 4, 8, 16),
+    stringsAsFactors = FALSE
+  )
+  
+  # Helper function to match profile labels to base categories
+  match_profile_category <- function(profile_label) {
+    for (i in 1:nrow(profile_styles)) {
+      if (grepl(paste0("^", profile_styles$label[i]), profile_label)) {
+        return(i)
+      }
+    }
+    return(NA)
+  }
+  
   # Construct file paths
   if (!is.null(input_year) && input_year != "ALL") {
+    class_solution <- hbsc_labels %>% filter(Country == input_country) %>% pull(ClassSolution)
+    class_num <- gsub("C", "", class_solution)
     mplus_folder_path <- paste0("data/LPA/", input_country, "/",  input_year)
-    csv_filename <- paste0(tolower(input_country), "_", input_year, "_c4.csv")
+    csv_filename <- paste0(tolower(input_country), "_", input_year, "_c", class_num, ".csv")
   } else {
+    class_solution <- hbsc_labels %>% filter(Country == input_country) %>% pull(ClassSolution)
+    class_num <- gsub("C", "", class_solution)
     mplus_folder_path <- paste0("data/LPA/", input_country)
-    csv_filename <- paste0(tolower(input_country), "_c4.csv")
+    csv_filename <- paste0(tolower(input_country), "_c", class_num, ".csv")
   }
   
   csv_filepath <- file.path(mplus_folder_path, csv_filename)
@@ -687,9 +760,10 @@ create_lpa_plot <- function(input_country, input_year = NULL) {
     desired_order <- c("Alcohol Consumption", "Smoking", "Physical Inactivity", "Sleep Problems", "Unhealthy Diet")
     means_df_filtered$Variable <- factor(means_df_filtered$Variable, levels = desired_order)
     
-    # Convert LatentClass to factor
+    # Convert LatentClass to factor - dynamically based on actual number of classes
+    class_num_numeric <- as.numeric(class_num)
     means_df_filtered$LatentClass <- factor(means_df_filtered$LatentClass,
-                                            levels = c(1, 2, 3, 4))
+                                            levels = 1:class_num_numeric)
     
     # Check if country and year exist in profile mapping
     year_key <- ifelse(is.null(input_year) || input_year == "ALL", "ALL", input_year)
@@ -700,11 +774,18 @@ create_lpa_plot <- function(input_country, input_year = NULL) {
       # Use profile mapping to create meaningful labels
       country_mapping <- profile_mapping[[input_country]][[year_key]]
       
-      # Create profile labels using the mapping (without proportions for consistent styling)
-      means_df_filtered$ProfileLabel <- factor(
-        country_mapping[means_df_filtered$LatentClass],
-        levels = c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk")
-      )
+      # Create profile labels using the mapping
+      means_df_filtered$ProfileLabel <- country_mapping[means_df_filtered$LatentClass]
+      
+      # Match each profile label to its base category
+      means_df_filtered$ProfileCategory <- sapply(means_df_filtered$ProfileLabel, function(label) {
+        idx <- match_profile_category(label)
+        if (!is.na(idx)) {
+          return(profile_styles$label[idx])
+        } else {
+          return(label)  # Fallback to original label if no match
+        }
+      })
       
       # Create profile labels with proportions for display
       means_df_filtered$ProfileLabelWithProp <- paste0(
@@ -714,26 +795,46 @@ create_lpa_plot <- function(input_country, input_year = NULL) {
         "%)"
       )
       
-      # Create ordered factor levels based on the actual data
-      desired_order <- c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk")
-      actual_labels_with_prop <- unique(means_df_filtered$ProfileLabelWithProp)
-      ordered_levels <- character(0)
+      # Get unique categories that actually exist in the data
+      existing_categories <- unique(means_df_filtered$ProfileCategory)
       
-      for(profile in desired_order) {
-        matching_label <- actual_labels_with_prop[grepl(paste0("^", profile, " \\("), actual_labels_with_prop)]
-        if(length(matching_label) > 0) {
-          ordered_levels <- c(ordered_levels, matching_label[1])
+      # Filter profile_styles to only include existing categories and sort by order
+      relevant_styles <- profile_styles[profile_styles$label %in% existing_categories, ]
+      relevant_styles <- relevant_styles[order(relevant_styles$order), ]
+      
+      # Create ordered factor levels based on the category order
+      # First create a mapping from ProfileLabel to order
+      means_df_filtered$ProfileOrder <- sapply(means_df_filtered$ProfileCategory, function(cat) {
+        order_val <- relevant_styles$order[relevant_styles$label == cat]
+        if (length(order_val) > 0) {
+          return(order_val[1])  # Take first element if multiple matches
+        } else {
+          return(NA)
         }
-      }
+      }, USE.NAMES = FALSE, simplify = TRUE)
       
-      means_df_filtered$ProfileLabelWithProp <- factor(means_df_filtered$ProfileLabelWithProp, 
-                                                       levels = ordered_levels)
+      # Ensure ProfileOrder is numeric
+      means_df_filtered$ProfileOrder <- as.numeric(means_df_filtered$ProfileOrder)
+      
+      # Order the ProfileLabelWithProp by the category order
+      ordered_data <- means_df_filtered[order(means_df_filtered$ProfileOrder), ]
+      ordered_levels <- unique(ordered_data$ProfileLabelWithProp)
+      
+      means_df_filtered$ProfileLabelWithProp <- factor(
+        means_df_filtered$ProfileLabelWithProp, 
+        levels = ordered_levels
+      )
+      
+      means_df_filtered$ProfileLabel <- factor(
+        means_df_filtered$ProfileLabel,
+        levels = unique(ordered_data$ProfileLabel)
+      )
       
     } else {
       # Fall back to existing labeling logic
       means_df_filtered$ProfileLabel <- factor(
         paste("Profile", means_df_filtered$LatentClass),
-        levels = paste("Profile", 1:4)
+        levels = paste("Profile", 1:class_num)
       )
       
       means_df_filtered$ProfileLabelWithProp <- paste0(
@@ -744,46 +845,59 @@ create_lpa_plot <- function(input_country, input_year = NULL) {
       )
       
       # Set factor levels for fallback case
-      means_df_filtered$ProfileLabelWithProp <- factor(means_df_filtered$ProfileLabelWithProp, 
-                                                       levels = unique(means_df_filtered$ProfileLabelWithProp))
+      means_df_filtered$ProfileLabelWithProp <- factor(
+        means_df_filtered$ProfileLabelWithProp, 
+        levels = unique(means_df_filtered$ProfileLabelWithProp)
+      )
+      
+      # For consistency, set ProfileCategory for fallback
+      means_df_filtered$ProfileCategory <- as.character(means_df_filtered$ProfileLabel)
     }
     
     # Reshape the data to long format for plotting
-    means_long <- melt(means_df_filtered, id.vars = c("Variable", "LatentClass", "ProfileLabel", "ProfileLabelWithProp"),
+    means_long <- melt(means_df_filtered, id.vars = c("Variable", "LatentClass", "ProfileLabel", "ProfileLabelWithProp", "ProfileCategory"),
                        measure.vars = "Estimate")
     
     # Create scale mappings
     if (use_mapping) {
-      # Get unique ProfileLabelWithProp values to create proper scale mappings
-      unique_labels <- unique(means_df_filtered$ProfileLabelWithProp)
+      # Get unique ProfileLabelWithProp values
+      unique_labels_with_prop <- levels(means_df_filtered$ProfileLabelWithProp)
       
-      # Extract the base profile names for mapping colors/shapes/linetypes
-      base_profiles <- gsub(" \\(.*?\\)", "", unique_labels)
+      # Get the corresponding categories for each label
+      categories <- sapply(unique_labels_with_prop, function(label) {
+        unique(means_df_filtered$ProfileCategory[means_df_filtered$ProfileLabelWithProp == label])
+      })
+      
+      # Match to profile_styles lookup table
+      style_indices <- match(categories, profile_styles$label)
       
       # Create named vectors for the scales
-      color_values <- c("#29af7f", "#bddf26", "#2e6f8e", "#482173")
-      names(color_values) <- unique_labels[match(c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk"), base_profiles)]
+      color_values <- profile_styles$color[style_indices]
+      names(color_values) <- unique_labels_with_prop
       
-      linetype_values <- c("solid", "dashed", "dotted", "dotdash")
-      names(linetype_values) <- unique_labels[match(c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk"), base_profiles)]
+      linetype_values <- profile_styles$linetype[style_indices]
+      names(linetype_values) <- unique_labels_with_prop
       
-      shape_values <- c(16, 17, 15, 18)
-      names(shape_values) <- unique_labels[match(c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk"), base_profiles)]
+      shape_values <- profile_styles$shape[style_indices]
+      names(shape_values) <- unique_labels_with_prop
       
     } else {
       # Fallback scale mappings for generic profile labels
       unique_labels <- unique(means_df_filtered$ProfileLabelWithProp)
-      color_values <- c("#482173", "#2e6f8e", "#29af7f", "#bddf26")
+      n_profiles <- length(unique_labels)
+      
+      # Use first n colors/shapes/linetypes from the lookup table
+      color_values <- profile_styles$color[1:n_profiles]
       names(color_values) <- unique_labels
       
-      linetype_values <- c("solid", "dashed", "dotted", "dotdash")
+      linetype_values <- profile_styles$linetype[1:n_profiles]
       names(linetype_values) <- unique_labels
       
-      shape_values <- c(16, 17, 15, 18)
+      shape_values <- profile_styles$shape[1:n_profiles]
       names(shape_values) <- unique_labels
     }
     
-    # Create the plot with ggplot2 using ProfileLabelWithProp for both styling and legend
+    # Create the plot with ggplot2
     plot <- ggplot(means_long, aes(x = Variable, y = value, 
                                    group = ProfileLabelWithProp,
                                    color = ProfileLabelWithProp, 
@@ -794,7 +908,7 @@ create_lpa_plot <- function(input_country, input_year = NULL) {
       labs(
         title = paste0("Latent Profile Analysis ", input_country, 
                        ifelse(!is.null(input_year) && input_year != "ALL", paste0(" ", input_year), ""), 
-                       ", 4 Profiles"),
+                       ", ", class_num, " Profiles"),
         x = "Health Behaviors",
         y = "Means",
         color = "Risk Profile",
@@ -832,6 +946,31 @@ create_lpa_plot <- function(input_country, input_year = NULL) {
 # Function to create multinomial regression plot
 create_multinomial_plot <- function(input_country, input_year = NULL) {
   
+  # Define the master lookup table for all possible profile labels (same as in LPA function)
+  profile_styles <- data.frame(
+    label = c("Low risk", 
+              "Slightly elevated substance use", 
+              "Moderate substance use", 
+              "Slightly reduced high risk", 
+              "High sleep problems", 
+              "High alcohol use", 
+              "High risk"),
+    order = 1:7,
+    color = c("#29af7f", "#bddf26", "#ffd92f", "#fc8d59", "#2e6f8e", "#8856a7", "#482173"),
+    shape = c(16, 17, 18, 15, 4, 8, 16),
+    stringsAsFactors = FALSE
+  )
+  
+  # Helper function to match profile labels to base categories
+  match_profile_category <- function(profile_label) {
+    for (i in 1:nrow(profile_styles)) {
+      if (grepl(paste0("^", profile_styles$label[i]), profile_label)) {
+        return(i)
+      }
+    }
+    return(NA)
+  }
+  
   # Construct file paths
   if (!is.null(input_year) && input_year != "ALL") {
     file_path <- file.path("data", "Regression", input_country, input_year, 
@@ -851,53 +990,108 @@ create_multinomial_plot <- function(input_country, input_year = NULL) {
       year_key %in% names(profile_mapping[[input_country]])
     
     # Prepare data for plotting
-    df_plot <- df_multinom %>%
-      filter(term != "(Intercept)") %>%  # exclude intercepts
-      mutate(
-        # Use mapping if available, otherwise fall back to generic labels
-        ProfileName = if (use_mapping) {
-          profile_mapping[[input_country]][[year_key]][as.numeric(y.level)]
-        } else {
-          paste("Profile", y.level)
-        },
-        # Reference profile is always "Low risk"
-        Profile = paste(ProfileName, "vs Low risk"),
-        term = factor(term, levels = unique(term))
-      )
-    
-    # Add ProfileName as factor for consistent coloring
     if (use_mapping) {
+      df_plot <- df_multinom %>%
+        filter(term != "(Intercept)") %>%  # exclude intercepts
+        mutate(
+          # Get the full profile name from mapping
+          ProfileName = profile_mapping[[input_country]][[year_key]][as.numeric(y.level)],
+          term = factor(term, levels = unique(term))
+        )
+      
+      # Match each profile to its base category
+      df_plot$ProfileCategory <- sapply(df_plot$ProfileName, function(label) {
+        idx <- match_profile_category(label)
+        if (!is.na(idx)) {
+          return(profile_styles$label[idx])
+        } else {
+          return(label)
+        }
+      })
+      
+      # Create the display label (ProfileName vs Low risk)
+      df_plot$Profile <- paste(df_plot$ProfileName, "vs Low risk")
+      
+      # Get unique categories and order them
+      existing_categories <- unique(df_plot$ProfileCategory)
+      relevant_styles <- profile_styles[profile_styles$label %in% existing_categories, ]
+      relevant_styles <- relevant_styles[order(relevant_styles$order), ]
+      
+      # Add order column for sorting
+      df_plot$ProfileOrder <- sapply(df_plot$ProfileCategory, function(cat) {
+        order_val <- relevant_styles$order[relevant_styles$label == cat]
+        if (length(order_val) > 0) {
+          return(order_val[1])
+        } else {
+          return(NA)
+        }
+      }, USE.NAMES = FALSE, simplify = TRUE)
+      df_plot$ProfileOrder <- as.numeric(df_plot$ProfileOrder)
+      
+      # Order the profiles
+      df_plot <- df_plot[order(df_plot$ProfileOrder), ]
+      
+      # Set factor levels based on order
       df_plot$ProfileName <- factor(df_plot$ProfileName, 
-                                    levels = c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk"))
+                                     levels = unique(df_plot$ProfileName))
+      df_plot$Profile <- factor(df_plot$Profile,
+                                levels = unique(df_plot$Profile))
+      
+      # Create color and shape mappings based on categories
+      unique_profile_names <- levels(df_plot$ProfileName)
+      categories <- sapply(unique_profile_names, function(name) {
+        unique(df_plot$ProfileCategory[df_plot$ProfileName == name])
+      })
+      
+      style_indices <- match(categories, profile_styles$label)
+      
+      color_values <- profile_styles$color[style_indices]
+      names(color_values) <- unique_profile_names
+      
+      shape_values <- profile_styles$shape[style_indices]
+      names(shape_values) <- unique_profile_names
+      
+    } else {
+      # Fallback to generic labels
+      df_plot <- df_multinom %>%
+        filter(term != "(Intercept)") %>%
+        mutate(
+          ProfileName = paste("Profile", y.level),
+          Profile = paste(ProfileName, "vs Profile 1"),
+          term = factor(term, levels = unique(term))
+        )
+      
+      # Set factor levels
+      df_plot$ProfileName <- factor(df_plot$ProfileName,
+                                     levels = unique(df_plot$ProfileName))
+      df_plot$Profile <- factor(df_plot$Profile,
+                                levels = unique(df_plot$Profile))
+      
+      # Fallback colors and shapes
+      n_profiles <- length(unique(df_plot$ProfileName))
+      color_values <- profile_styles$color[1:n_profiles]
+      names(color_values) <- levels(df_plot$ProfileName)
+      
+      shape_values <- profile_styles$shape[1:n_profiles]
+      names(shape_values) <- levels(df_plot$ProfileName)
     }
     
     # Create the plot
     plot <- ggplot(df_plot, aes(x = odds_ratio, y = term)) +
-      geom_point(aes(color = if (use_mapping) ProfileName else Profile, 
-                     shape = if (use_mapping) ProfileName else Profile), size = 3) +
-      geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, 
-                         color = if (use_mapping) ProfileName else Profile), height = 0.2) +
+      geom_point(aes(color = ProfileName, shape = ProfileName), size = 3) +
+      geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, color = ProfileName), 
+                     height = 0.2) +
       geom_text(aes(label = sprintf("OR = %.2f", odds_ratio), x = odds_ratio),
                 size = 3.5, hjust = 0.46, vjust = 4, color = "black") +  
       theme_minimal() +
       labs(title = paste("Multinomial Regression: Odds Ratios by Profile -", input_country,
-                         ifelse(!is.null(input_year) && input_year != "ALL", paste0("", input_year), "")),
+                         ifelse(!is.null(input_year) && input_year != "ALL", paste0(" ", input_year), "")),
            x = "Estimate (Odds Ratio, 95% CI)", y = "",
            color = "Risk Profile", shape = "Risk Profile") +
       geom_vline(xintercept = 1, linetype = "dashed", color = "black") +
       facet_wrap(~ Profile) +
-      {if (use_mapping) {
-        list(
-          scale_color_manual(values = c("Low risk" = "#29af7f", 
-                                        "Moderate risk varying substance use" = "#bddf26",
-                                        "High substance use" = "#2e6f8e", 
-                                        "High risk" = "#482173")),
-          scale_shape_manual(values = c("Low risk" = 16, 
-                                        "Moderate risk varying substance use" = 17,
-                                        "High substance use" = 15, 
-                                        "High risk" = 18))
-        )
-      }} +
+      scale_color_manual(values = color_values) +
+      scale_shape_manual(values = shape_values) +
       theme(panel.border = element_rect(color = "black", fill = NA, size = .5),
             plot.title = element_text(size = 16),
             strip.text = element_text(size = 12),                  
@@ -919,6 +1113,31 @@ create_multinomial_plot <- function(input_country, input_year = NULL) {
 
 # Function to create linear regression plot with interaction
 create_linear_plot_interaction <- function(input_country, input_year = NULL, outcome_variable) {
+  
+  # Define the master lookup table for all possible profile labels (same as in LPA function)
+  profile_styles <- data.frame(
+    label = c("Low risk", 
+              "Slightly elevated substance use", 
+              "Moderate substance use", 
+              "Slightly reduced high risk", 
+              "High sleep problems", 
+              "High alcohol use", 
+              "High risk"),
+    order = 1:7,
+    color = c("#29af7f", "#bddf26", "#ffd92f", "#fc8d59", "#2e6f8e", "#8856a7", "#482173"),
+    shape = c(16, 17, 18, 15, 4, 8, 16),
+    stringsAsFactors = FALSE
+  )
+  
+  # Helper function to match profile labels to base categories
+  match_profile_category <- function(profile_label) {
+    for (i in 1:nrow(profile_styles)) {
+      if (grepl(paste0("^", profile_styles$label[i]), profile_label)) {
+        return(profile_styles$label[i])
+      }
+    }
+    return(NA)
+  }
   
   # Construct file paths
   if (!is.null(input_year) && input_year != "ALL") {
@@ -946,11 +1165,14 @@ create_linear_plot_interaction <- function(input_country, input_year = NULL, out
                              "Significant", "Non-significant")
       )
     
-    # Find reference profile by checking which profile number is missing from terms
+    # Find reference profile by checking which profile number is missing from terms (if using mapping)
     if (use_mapping) {
-      profile_terms <- df_plot$term[grepl("^profile[1234]", df_plot$term)]
+      # Get the total number of profiles from the mapping
+      num_profiles <- length(profile_mapping[[input_country]][[year_key]])
+      
+      profile_terms <- df_plot$term[grepl("^profile[0-9]+", df_plot$term)]
       present_profiles <- as.numeric(gsub("profile", "", gsub(":.*", "", profile_terms)))
-      all_profiles <- 1:4
+      all_profiles <- 1:num_profiles
       reference_profile_num <- setdiff(all_profiles, present_profiles)[1]
     }
     
@@ -959,8 +1181,8 @@ create_linear_plot_interaction <- function(input_country, input_year = NULL, out
         # Update term names to use profile mapping if available
         term_updated = if (use_mapping) {
           sapply(term, function(t) {
-            # Check if term contains profile reference (e.g., "profile1", "profile2", "profile3", "profile4")
-            if (grepl("^profile[1234]", t)) {
+            # Check if term contains profile reference with any number
+            if (grepl("^profile[0-9]+", t)) {
               profile_num <- as.numeric(gsub("profile", "", gsub(":.*", "", t)))
               profile_name <- profile_mapping[[input_country]][[year_key]][profile_num]
               # Replace the profile part with the mapped name
@@ -974,37 +1196,55 @@ create_linear_plot_interaction <- function(input_country, input_year = NULL, out
         }
       )
     
-    # Set the desired order for profile terms and add ProfileName for coloring
+    # Set the desired order for profile terms and add ProfileName/ProfileCategory for coloring
     if (use_mapping) {
-      desired_profile_order <- c("Moderate risk varying substance use", "High substance use", "High risk")
-      
-      # Extract profile names for coloring/shaping
-      df_plot$ProfileName <- sapply(df_plot$term_updated, function(t) {
-        for (profile in desired_profile_order) {
-          if (grepl(paste0("^", profile), t)) {
-            return(profile)
-          }
-        }
-        return(NA)
+      # Match to base categories for all terms
+      df_plot$ProfileCategory <- sapply(df_plot$term_updated, function(t) {
+        # Extract the profile name part (before any colon if it's an interaction)
+        profile_part <- gsub(":.*", "", t)
+        # Use the helper function to match to base category
+        category <- match_profile_category(profile_part)
+        return(category)
       })
       
-      # Separate terms into categories
-      profile_main_terms <- df_plot$term_updated[grepl("^(Moderate risk|High substance|High risk)", df_plot$term_updated) & 
-                                                   !grepl(":", df_plot$term_updated)]
-      interaction_terms <- df_plot$term_updated[grepl("^(Moderate risk|High substance|High risk)", df_plot$term_updated) & 
-                                                  grepl(":", df_plot$term_updated)]
-      other_terms <- df_plot$term_updated[!grepl("^(Moderate risk|High substance|High risk)", df_plot$term_updated)]
+      # Get unique categories that actually exist in the data
+      existing_categories <- unique(df_plot$ProfileCategory)
+      existing_categories <- existing_categories[!is.na(existing_categories)]
       
-      # Order each category
+      # Filter and order based on profile_styles
+      relevant_styles <- profile_styles[profile_styles$label %in% existing_categories, ]
+      relevant_styles <- relevant_styles[order(relevant_styles$order), ]
+      desired_profile_order <- relevant_styles$label
+      
+      # Separate terms into categories
+      profile_pattern <- paste0("^(", paste(sapply(desired_profile_order, function(x) {
+        # Escape special regex characters and allow for additional text after the base label
+        gsub("([.+?^${}()|\\[\\]\\\\])", "\\\\\\1", x)
+      }), collapse = "|"), ")")
+      
+      profile_main_terms <- df_plot$term_updated[grepl(profile_pattern, df_plot$term_updated) & 
+                                                   !grepl(":", df_plot$term_updated)]
+      interaction_terms <- df_plot$term_updated[grepl(profile_pattern, df_plot$term_updated) & 
+                                                  grepl(":", df_plot$term_updated)]
+      other_terms <- df_plot$term_updated[!grepl(profile_pattern, df_plot$term_updated)]
+      
+      # Order each category by matching to base categories
       ordered_profile_main <- character(0)
       for (profile in desired_profile_order) {
-        matching_terms <- profile_main_terms[grepl(paste0("^", profile, "$"), profile_main_terms)]
+        matching_terms <- profile_main_terms[sapply(profile_main_terms, function(t) {
+          cat <- match_profile_category(t)
+          !is.na(cat) && cat == profile
+        })]
         ordered_profile_main <- c(ordered_profile_main, matching_terms)
       }
       
       ordered_interactions <- character(0)
       for (profile in desired_profile_order) {
-        matching_terms <- interaction_terms[grepl(paste0("^", profile, ":"), interaction_terms)]
+        matching_terms <- interaction_terms[sapply(interaction_terms, function(t) {
+          profile_part <- gsub(":.*", "", t)
+          cat <- match_profile_category(profile_part)
+          !is.na(cat) && cat == profile
+        })]
         ordered_interactions <- c(ordered_interactions, matching_terms)
       }
       
@@ -1012,19 +1252,28 @@ create_linear_plot_interaction <- function(input_country, input_year = NULL, out
       term_order <- c(ordered_profile_main, other_terms, ordered_interactions)
       df_plot$term_updated <- factor(df_plot$term_updated, levels = term_order)
       
-      # Set ProfileName as factor for consistent coloring
-      df_plot$ProfileName <- factor(df_plot$ProfileName, 
-                                    levels = c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk"))
+      # Set ProfileCategory as factor for consistent coloring
+      df_plot$ProfileCategory <- factor(df_plot$ProfileCategory, 
+                                        levels = relevant_styles$label)
+      
+      # Create color and shape mappings
+      color_values <- relevant_styles$color
+      names(color_values) <- relevant_styles$label
+      
+      shape_values <- relevant_styles$shape
+      names(shape_values) <- relevant_styles$label
+      
     } else {
       df_plot$term_updated <- factor(df_plot$term_updated, levels = unique(df_plot$term_updated))
+      df_plot$ProfileCategory <- NA
     }
     
     # Create the plot
     plot <- ggplot(df_plot, aes(x = std_estimate, y = term_updated)) +
-      {if (use_mapping && any(!is.na(df_plot$ProfileName))) {
+      {if (use_mapping && any(!is.na(df_plot$ProfileCategory))) {
         list(
-          geom_point(aes(color = ProfileName, shape = ProfileName), size = 3),
-          geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, color = ProfileName), height = 0.2)
+          geom_point(aes(color = ProfileCategory, shape = ProfileCategory), size = 3),
+          geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, color = ProfileCategory), height = 0.2)
         )
       } else {
         list(
@@ -1036,35 +1285,27 @@ create_linear_plot_interaction <- function(input_country, input_year = NULL, out
                 size = 3.5, hjust = 0.46, vjust = 2, color = "black") +
       theme_minimal() +
       labs(title = paste("With Interaction - Outcome Variable:", outcome_variable, "-", input_country,
-                         ifelse(!is.null(input_year) && input_year != "ALL", paste0("", input_year), "")),
+                         ifelse(!is.null(input_year) && input_year != "ALL", paste0(" ", input_year), "")),
            x = "Estimate (Standardized Estimate, 95% CI)", y = "",
-           color = if (use_mapping && any(!is.na(df_plot$ProfileName))) "Risk Profile" else "Significance",
-           shape = if (use_mapping && any(!is.na(df_plot$ProfileName))) "Risk Profile" else NULL) +
+           color = if (use_mapping && any(!is.na(df_plot$ProfileCategory))) "Risk Profile" else "Significance",
+           shape = if (use_mapping && any(!is.na(df_plot$ProfileCategory))) "Risk Profile" else NULL) +
       geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
-      {if (use_mapping && any(!is.na(df_plot$ProfileName))) {
+      {if (use_mapping && any(!is.na(df_plot$ProfileCategory))) {
         list(
-          scale_color_manual(values = c("Low risk" = "#29af7f", 
-                                        "Moderate risk varying substance use" = "#bddf26",
-                                        "High substance use" = "#2e6f8e", 
-                                        "High risk" = "#482173"),
-                             na.value = "black"),
-          scale_shape_manual(values = c("Low risk" = 16, 
-                                        "Moderate risk varying substance use" = 17,
-                                        "High substance use" = 15, 
-                                        "High risk" = 18),
-                             na.value = 18)
+          scale_color_manual(values = color_values, na.value = "black"),
+          scale_shape_manual(values = shape_values, na.value = 18)
         )
       } else {
         scale_color_manual(values = c("Significant" = "steelblue", "Non-significant" = "black"))
       }} +
       theme(panel.border = element_rect(color = "black", fill = NA, size = .5),
             plot.title = element_text(size = 12, face = "bold"),
-            legend.position = if (use_mapping && any(!is.na(df_plot$ProfileName))) "none" else "bottom",
+            legend.position = if (use_mapping && any(!is.na(df_plot$ProfileCategory))) "none" else "bottom",
             legend.text = element_text(size = 12),
             axis.text.x = element_text(size = 12),
             axis.title.x = element_text(size = 12, margin = margin(t = 10)),
             axis.text.y = element_text(size = 12, margin = margin(r = 10))) +
-      {if (!use_mapping || !any(!is.na(df_plot$ProfileName))) {
+      {if (!use_mapping || !any(!is.na(df_plot$ProfileCategory))) {
         guides(color = guide_legend(title = ""))
       }}
     
@@ -1080,6 +1321,31 @@ create_linear_plot_interaction <- function(input_country, input_year = NULL, out
 
 # Function to create linear regression plot without interaction
 create_linear_plot_main <- function(input_country, input_year = NULL, outcome_variable) {
+  
+  # Define the master lookup table for all possible profile labels (same as in LPA function)
+  profile_styles <- data.frame(
+    label = c("Low risk", 
+              "Slightly elevated substance use", 
+              "Moderate substance use", 
+              "Slightly reduced high risk", 
+              "High sleep problems", 
+              "High alcohol use", 
+              "High risk"),
+    order = 1:7,
+    color = c("#29af7f", "#bddf26", "#ffd92f", "#fc8d59", "#2e6f8e", "#8856a7", "#482173"),
+    shape = c(16, 17, 18, 15, 4, 8, 16),
+    stringsAsFactors = FALSE
+  )
+  
+  # Helper function to match profile labels to base categories
+  match_profile_category <- function(profile_label) {
+    for (i in 1:nrow(profile_styles)) {
+      if (grepl(paste0("^", profile_styles$label[i]), profile_label)) {
+        return(profile_styles$label[i])
+      }
+    }
+    return(NA)
+  }
   
   # Construct file paths
   if (!is.null(input_year) && input_year != "ALL") {
@@ -1109,9 +1375,12 @@ create_linear_plot_main <- function(input_country, input_year = NULL, outcome_va
     
     # Find reference profile by checking which profile number is missing from terms
     if (use_mapping) {
-      profile_terms <- df_plot$term[grepl("^profile[1234]", df_plot$term)]
+      # Get the total number of profiles from the mapping
+      num_profiles <- length(profile_mapping[[input_country]][[year_key]])
+      
+      profile_terms <- df_plot$term[grepl("^profile[0-9]+", df_plot$term)]
       present_profiles <- as.numeric(gsub("profile", "", profile_terms))
-      all_profiles <- 1:4
+      all_profiles <- 1:num_profiles
       reference_profile_num <- setdiff(all_profiles, present_profiles)[1]
     }
     
@@ -1120,8 +1389,8 @@ create_linear_plot_main <- function(input_country, input_year = NULL, outcome_va
         # Update term names to use profile mapping if available
         term_updated = if (use_mapping) {
           sapply(term, function(t) {
-            # Check if term contains profile reference (e.g., "profile1", "profile2", "profile3", "profile4")
-            if (grepl("^profile[1234]", t)) {
+            # Check if term contains profile reference with any number
+            if (grepl("^profile[0-9]+", t)) {
               profile_num <- as.numeric(gsub("profile", "", t))
               profile_name <- profile_mapping[[input_country]][[year_key]][profile_num]
               profile_name
@@ -1134,47 +1403,62 @@ create_linear_plot_main <- function(input_country, input_year = NULL, outcome_va
         }
       )
     
-    # Set the desired order for profile terms and add ProfileName for coloring
+    # Set the desired order for profile terms and add ProfileCategory for coloring
     if (use_mapping) {
-      desired_profile_order <- c("Moderate risk varying substance use", "High substance use", "High risk")
-      
-      # Extract profile names for coloring/shaping (main effects only, no interactions)
-      df_plot$ProfileName <- sapply(df_plot$term_updated, function(t) {
-        for (profile in desired_profile_order) {
-          if (t == profile) {
-            return(profile)
-          }
-        }
-        return(NA)
+      # Match to base categories for all terms
+      df_plot$ProfileCategory <- sapply(df_plot$term_updated, function(t) {
+        # Use the helper function to match to base category
+        category <- match_profile_category(t)
+        return(category)
       })
       
+      # Get unique categories that actually exist in the data
+      existing_categories <- unique(df_plot$ProfileCategory)
+      existing_categories <- existing_categories[!is.na(existing_categories)]
+      
+      # Filter and order based on profile_styles
+      relevant_styles <- profile_styles[profile_styles$label %in% existing_categories, ]
+      relevant_styles <- relevant_styles[order(relevant_styles$order), ]
+      desired_profile_order <- relevant_styles$label
+      
       # Order terms: profile terms first in desired order, then other terms
-      profile_terms <- df_plot$term_updated[!is.na(df_plot$ProfileName)]
-      other_terms <- df_plot$term_updated[is.na(df_plot$ProfileName)]
+      profile_terms <- df_plot$term_updated[!is.na(df_plot$ProfileCategory)]
+      other_terms <- df_plot$term_updated[is.na(df_plot$ProfileCategory)]
       
       ordered_profile_terms <- character(0)
       for (profile in desired_profile_order) {
-        if (profile %in% profile_terms) {
-          ordered_profile_terms <- c(ordered_profile_terms, profile)
-        }
+        matching_terms <- profile_terms[sapply(profile_terms, function(t) {
+          cat <- match_profile_category(t)
+          !is.na(cat) && cat == profile
+        })]
+        ordered_profile_terms <- c(ordered_profile_terms, matching_terms)
       }
       
       term_order <- c(ordered_profile_terms, other_terms)
       df_plot$term_updated <- factor(df_plot$term_updated, levels = term_order)
       
-      # Set ProfileName as factor for consistent coloring
-      df_plot$ProfileName <- factor(df_plot$ProfileName, 
-                                    levels = c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk"))
+      # Set ProfileCategory as factor for consistent coloring
+      df_plot$ProfileCategory <- factor(df_plot$ProfileCategory, 
+                                        levels = relevant_styles$label)
+      
+      # Create color and shape mappings
+      color_values <- relevant_styles$color
+      names(color_values) <- relevant_styles$label
+      
+      shape_values <- relevant_styles$shape
+      names(shape_values) <- relevant_styles$label
+      
     } else {
       df_plot$term_updated <- factor(df_plot$term_updated, levels = unique(df_plot$term_updated))
+      df_plot$ProfileCategory <- NA
     }
     
     # Create the plot
     plot <- ggplot(df_plot, aes(x = std_estimate, y = term_updated)) +
-      {if (use_mapping && any(!is.na(df_plot$ProfileName))) {
+      {if (use_mapping && any(!is.na(df_plot$ProfileCategory))) {
         list(
-          geom_point(aes(color = ProfileName, shape = ProfileName), size = 3),
-          geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, color = ProfileName), height = 0.2)
+          geom_point(aes(color = ProfileCategory, shape = ProfileCategory), size = 3),
+          geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, color = ProfileCategory), height = 0.2)
         )
       } else {
         list(
@@ -1186,35 +1470,27 @@ create_linear_plot_main <- function(input_country, input_year = NULL, outcome_va
                 size = 3.5, hjust = 0.46, vjust = 2, color = "black") +
       theme_minimal() +
       labs(title = paste("Main Effects - Outcome Variable:", outcome_variable, "-", input_country,
-                         ifelse(!is.null(input_year) && input_year != "ALL", paste0("", input_year), "")),
+                         ifelse(!is.null(input_year) && input_year != "ALL", paste0(" ", input_year), "")),
            x = "Estimate (Standardized Estimate, 95% CI)", y = "",
-           color = if (use_mapping && any(!is.na(df_plot$ProfileName))) "Risk Profile" else "Significance",
-           shape = if (use_mapping && any(!is.na(df_plot$ProfileName))) "Risk Profile" else NULL) +
+           color = if (use_mapping && any(!is.na(df_plot$ProfileCategory))) "Risk Profile" else "Significance",
+           shape = if (use_mapping && any(!is.na(df_plot$ProfileCategory))) "Risk Profile" else NULL) +
       geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
-      {if (use_mapping && any(!is.na(df_plot$ProfileName))) {
+      {if (use_mapping && any(!is.na(df_plot$ProfileCategory))) {
         list(
-          scale_color_manual(values = c("Low risk" = "#29af7f", 
-                                        "Moderate risk varying substance use" = "#bddf26",
-                                        "High substance use" = "#2e6f8e", 
-                                        "High risk" = "#482173"),
-                             na.value = "black"),
-          scale_shape_manual(values = c("Low risk" = 16, 
-                                        "Moderate risk varying substance use" = 17,
-                                        "High substance use" = 15, 
-                                        "High risk" = 18),
-                             na.value = 18)
+          scale_color_manual(values = color_values, na.value = "black"),
+          scale_shape_manual(values = shape_values, na.value = 18)
         )
       } else {
         scale_color_manual(values = c("Significant" = "steelblue", "Non-significant" = "black"))
       }} +
       theme(panel.border = element_rect(color = "black", fill = NA, size = .5),
             plot.title = element_text(size = 12, face = "bold"),
-            legend.position = if (use_mapping && any(!is.na(df_plot$ProfileName))) "none" else "bottom",
+            legend.position = if (use_mapping && any(!is.na(df_plot$ProfileCategory))) "none" else "bottom",
             legend.text = element_text(size = 12),
             axis.text.x = element_text(size = 12),
             axis.title.x = element_text(size = 12, margin = margin(t = 10)),
             axis.text.y = element_text(size = 12, margin = margin(r = 10))) +
-      {if (!use_mapping || !any(!is.na(df_plot$ProfileName))) {
+      {if (!use_mapping || !any(!is.na(df_plot$ProfileCategory))) {
         guides(color = guide_legend(title = ""))
       }}
     
@@ -1228,11 +1504,8 @@ create_linear_plot_main <- function(input_country, input_year = NULL, outcome_va
   })
 }
 
-# Function to create all plots for a given country and year
-create_all_plots <- function(input_country, input_year) {
-  
-  # Create LPA plot
-  lpa_plot <- create_lpa_plot(input_country, input_year)
+# Function to create all regression plots for a given country and year
+create_reg_plots <- function(input_country, input_year) {
   
   # Create multinomial regression plot
   multinomial_plot <- create_multinomial_plot(input_country, input_year)
@@ -1249,10 +1522,56 @@ create_all_plots <- function(input_country, input_year) {
   
   # Return all plots as a list
   return(list(
-    lpa_plot = lpa_plot,
     multinomial_plot = multinomial_plot,
     linear_plots_main = linear_plots_main,
     linear_plots_interaction = linear_plots_interaction
+  ))
+}
+
+# Helper function to get regression data for tables
+get_reg_data <- function(input_country, input_year = NULL) {
+  
+  # Construct file paths
+  year_key <- ifelse(is.null(input_year) || input_year == "ALL", "ALL", input_year)
+  
+  # Multinomial data
+  if (!is.null(input_year) && input_year != "ALL") {
+    multinom_path <- file.path("data", "Regression", input_country, input_year, 
+                               paste0(input_country, "_", input_year, "_multinom_profile~age+sex+ses.csv"))
+  } else {
+    multinom_path <- file.path("data", "Regression", input_country, 
+                               paste0(input_country, "_all_multinom_profile~age+sex+ses.csv"))
+  }
+  
+  # Linear regression data paths
+  outcome_vars <- c("ache", "feeling", "health", "lifesat")
+  
+  linear_main_data <- list()
+  linear_interaction_data <- list()
+  
+  for (var in outcome_vars) {
+    if (!is.null(input_year) && input_year != "ALL") {
+      main_path <- paste0("data/Regression/", input_country, "/", input_year, "/", 
+                          input_country, "_", input_year, "_reg_", var, "_profile.csv")
+      interaction_path <- paste0("data/Regression/", input_country, "/", input_year, "/", 
+                                 input_country, "_", input_year, "_reg_", var, "_profile+age+sex+ses+profilexsex.csv")
+    } else {
+      main_path <- paste0("data/Regression/", input_country, "/", 
+                          input_country, "_all_reg_", var, "_profile.csv")
+      interaction_path <- paste0("data/Regression/", input_country, "/", 
+                                 input_country, "_all_reg_", var, "_profile+age+sex+ses+profilexsex.csv")
+    }
+    
+    linear_main_data[[var]] <- tryCatch(read.csv(main_path), error = function(e) NULL)
+    linear_interaction_data[[var]] <- tryCatch(read.csv(interaction_path), error = function(e) NULL)
+  }
+  
+  multinom_data <- tryCatch(read.csv(multinom_path), error = function(e) NULL)
+  
+  return(list(
+    multinomial = multinom_data,
+    linear_main = linear_main_data,
+    linear_interaction = linear_interaction_data
   ))
 }
 
@@ -1277,19 +1596,45 @@ ui <- fluidPage(
                       fluidPage(
                         h2("Welcome to the Adolescent Well-Being in Flux App"),
                         
+                        p("This app provides insights into adolescent well-being through descriptive statistics and latent profile analysis (LPA)."),
+                        p("Use the navigation menu to explore the data."),
+                        br(),
+                        
                         fluidRow(
                           column(width = 12,
-                                 tags$img(src = "logo_UZH.png", height = "80px", style = "margin: 10px;"),
-                                 tags$img(src = "logo_PUK.png", height = "80px", style = "margin: 10px;"),
-                                 tags$img(src = "logo_JC.png", height = "80px", style = "margin: 10px;"),
-                                 tags$img(src = "logo_PRC.png", height = "80px", style = "margin: 10px;")
-                          )
+                                 tags$a(href = "https://www.prc.uzh.ch/en", target = "_blank",
+                                        tags$img(src = "logo_PRC.svg", height = "80px", width = "240px",
+                                                 style = "margin: 10px; cursor: pointer; transition: opacity 0.3s;",
+                                                 onmouseover = "this.style.opacity=0.7",
+                                                 onmouseout = "this.style.opacity=1")),
+                                 tags$a(href = "https://www.uzh.ch/en", target = "_blank",
+                                        tags$img(src = "logo_UZH.png", height = "80px", 
+                                            style = "margin: 10px; cursor: pointer; transition: opacity 0.3s;",
+                                            onmouseover = "this.style.opacity=0.7",
+                                            onmouseout = "this.style.opacity=1")),
+                                 tags$a(href = "https://www.pukzh.ch", target = "_blank",
+                                        tags$img(src = "logo_PUK.png", height = "80px", 
+                                            style = "margin: 10px; cursor: pointer; transition: opacity 0.3s;",
+                                            onmouseover = "this.style.opacity=0.7",
+                                            onmouseout = "this.style.opacity=1")),
+                                 tags$a(href = "https://www.jacobscenter.uzh.ch/en", target = "_blank",
+                                        tags$img(src = "logo_JC.png", height = "80px", 
+                                            style = "margin: 10px; cursor: pointer; transition: opacity 0.3s;",
+                                            onmouseover = "this.style.opacity=0.7",
+                                            onmouseout = "this.style.opacity=1"))
+                          ),
                         ),
                         
-                        p("We gratefully acknowledge the UZH Population Research Center for supporting this research through a Seed Grant."),
                         br(),
-                        p("This app provides insights into adolescent well-being through descriptive statistics and latent profile analysis (LPA)."),
-                        p("Use the navigation menu to explore the data.")
+                        p("We gratefully acknowledge the UZH Population Research Center for supporting this research through a Seed Grant."),
+                        p(
+                          "Health Behavior in School-aged Children (HBSC) is an international study carried out in collaboration with the World Health Organization, Regional Office for Europe (WHO/EURO). The International Coordinator of the HBSC study is Dr Joanna Inchley, University of Glasgow, Scotland. The Data Bank Manager is Professor Oddrun Samdal, University of Bergen in Norway. For details, see ",
+                          a("http://www.hbsc.org/", href = "http://www.hbsc.org/", target = "_blank"),
+                          "."
+                        ),
+                        p("In Switzerland, HBSC is coordinated by Dr. Marina Delgrande Jordan at Sucht Schweiz and financed by the Federal Department of Health and the Swiss cantons."),
+                        br(),
+                        
                       )
              ),
              
@@ -1298,122 +1643,123 @@ ui <- fluidPage(
                       tabPanel("Map",
                                # Set max height for the page to fill browser window + info icon styling
                                tags$style(type = "text/css", "
-                    html, body {height: 100%} 
-                    #mapContainer {height: calc(90vh - 200px);}
-                    
-                    /* Info icon styling */
-                    .info-icon {
-                      color: #007bff;
-                      margin-left: -2px;
-                      cursor: pointer;
-                      font-size: 14px;
-                      font-weight: bold;
-                      vertical-align: super;
-                      position: relative;
-                      top: -4px;
-                      text-shadow: 0 0 1px #007bff;
-                    }
-                    
-                    /* Remove any title attributes that show on hover */
-                    .info-icon[title] {
-                      title: none !important;
-                    }
-                    
-                    /* Prevent tab titles from interfering with tooltips */
-                    .nav-tabs > li > a {
-                      position: relative;
-                      z-index: 1;
-                    }
-                    
-                    /* Remove browser default tooltips */
-                    * {
-                      -webkit-user-select: none;
-                      -moz-user-select: none;
-                      -ms-user-select: none;
-                      user-select: none;
-                    }
-                    
-                    .tooltip-text {
-                      -webkit-user-select: text;
-                      -moz-user-select: text;
-                      -ms-user-select: text;
-                      user-select: text;
-                    }
-                    
-                    /* Tooltip styling */
-                    .info-tooltip {
-                      position: relative;
-                      display: inline-block;
-                    }
-                    
-                    .info-tooltip .tooltip-text {
-                      visibility: hidden;
-                      width: 320px;
-                      background-color: #333;
-                      color: white;
-                      text-align: left;
-                      border-radius: 6px;
-                      padding: 10px 15px;
-                      position: absolute;
-                      z-index: 1000;
-                      top: 50%;
-                      left: 100%;
-                      margin-left: 5px;
-                      margin-top: -50px;
-                      opacity: 0;
-                      transition: opacity 0.3s;
-                      font-size: 13px;
-                      line-height: 1.4;
-                      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-                    }
-                    
-                    .info-tooltip .tooltip-text::before {
-                      content: '';
-                      position: absolute;
-                      top: 50%;
-                      left: -5px;
-                      margin-top: -5px;
-                      border-width: 5px;
-                      border-style: solid;
-                      border-color: transparent #333 transparent transparent;
-                    }
-                    
-                    .info-tooltip:hover .tooltip-text,
-                    .info-tooltip .tooltip-text:hover {
-                      visibility: visible !important;
-                      opacity: 1 !important;
-                      animation: none !important;
-                    }
-                    
-                    /* Auto-show tooltip for first visit */
-                    .info-tooltip .tooltip-text.auto-show {
-                      visibility: visible !important;
-                      opacity: 1 !important;
-                      animation: fadeOut 6s ease-in-out forwards;
-                    }
-                    
-                    @keyframes fadeOut {
-                      0% { opacity: 1; visibility: visible; }
-                      83% { opacity: 1; visibility: visible; }
-                      100% { opacity: 0; visibility: hidden; }
-                    }
-                  "),
+                                html, body {height: 100%} 
+                                #mapContainer {height: calc(90vh - 200px);}
+                                
+                                /* Info icon styling */
+                                .info-icon {
+                                  color: #007bff;
+                                  margin-left: -2px;
+                                  cursor: pointer;
+                                  font-size: 14px;
+                                  font-weight: bold;
+                                  vertical-align: super;
+                                  position: relative;
+                                  top: -4px;
+                                  text-shadow: 0 0 1px #007bff;
+                                }
+                                
+                                /* Remove any title attributes that show on hover */
+                                .info-icon[title] {
+                                  title: none !important;
+                                }
+                                
+                                /* Prevent tab titles from interfering with tooltips */
+                                .nav-tabs > li > a {
+                                  position: relative;
+                                  z-index: 1;
+                                }
+                                
+                                /* Remove browser default tooltips */
+                                * {
+                                  -webkit-user-select: none;
+                                  -moz-user-select: none;
+                                  -ms-user-select: none;
+                                  user-select: none;
+                                }
+                                
+                                .tooltip-text {
+                                  -webkit-user-select: text;
+                                  -moz-user-select: text;
+                                  -ms-user-select: text;
+                                  user-select: text;
+                                }
+                                
+                                /* Tooltip styling */
+                                .info-tooltip {
+                                  position: relative;
+                                  display: inline-block;
+                                }
+                                
+                                .info-tooltip .tooltip-text {
+                                  visibility: hidden;
+                                  width: 320px;
+                                  background-color: #333;
+                                  color: white;
+                                  text-align: left;
+                                  border-radius: 6px;
+                                  padding: 10px 15px;
+                                  position: absolute;
+                                  z-index: 1000;
+                                  top: 50%;
+                                  left: 100%;
+                                  margin-left: 5px;
+                                  margin-top: -50px;
+                                  opacity: 0;
+                                  transition: opacity 0.3s;
+                                  font-size: 13px;
+                                  line-height: 1.4;
+                                  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                                }
+                                
+                                .info-tooltip .tooltip-text::before {
+                                  content: '';
+                                  position: absolute;
+                                  top: 50%;
+                                  left: -5px;
+                                  margin-top: -5px;
+                                  border-width: 5px;
+                                  border-style: solid;
+                                  border-color: transparent #333 transparent transparent;
+                                }
+                                
+                                .info-tooltip:hover .tooltip-text,
+                                .info-tooltip .tooltip-text:hover {
+                                  visibility: visible !important;
+                                  opacity: 1 !important;
+                                  animation: none !important;
+                                }
+                                
+                                /* Auto-show tooltip for first visit */
+                                .info-tooltip .tooltip-text.auto-show {
+                                  visibility: visible !important;
+                                  opacity: 1 !important;
+                                  animation: fadeOut 6s ease-in-out forwards;
+                                }
+                                
+                                @keyframes fadeOut {
+                                  0% { opacity: 1; visibility: visible; }
+                                  83% { opacity: 1; visibility: visible; }
+                                  100% { opacity: 0; visibility: hidden; }
+                                }
+                              "),
+                               
                                fluidPage(
                                  # Title with info icon
                                  h3(HTML("Health Indicators Over Time 
-                              <span class='info-tooltip'>
-                                <span class='info-icon' title=''>ⓘ</span>
-                                <span class='tooltip-text' id='map-tooltip'>
-                                  This interactive map displays health behavior data from the HBSC study. 
-                                  Select different indicators to explore patterns across European countries 
-                                  and survey years. Click on countries for detailed information. 
-                                  Countries are not supposed to be compared directly (z-Scores were calculated within country). 
-                                  Use the survey year slider to see how health indicators have developed for each country.
-                                  <br><br>
-                                  <a href='#' onclick='$(\"a[data-value=\\\"About\\\"]\").tab(\"show\"); return false;' 
-                                     style='color: #87CEEB; text-decoration: underline;'>Learn more in the About section</a>
-                                </span>
-                              </span>")),
+                                 <span class='info-tooltip'>
+                                 <span class='info-icon' title=''>ⓘ</span>
+                                 <span class='tooltip-text' id='map-tooltip'>
+                                    This interactive map displays health behavior data from the HBSC study. 
+                                    Select different indicators to explore patterns across European countries 
+                                    and survey years. Click on countries for detailed information. 
+                                    Countries are not supposed to be compared directly (z-Scores were calculated within country). 
+                                    Use the survey year slider to see how health indicators have developed for each country.
+                                    <br><br>
+                                    <a href='#' onclick='$(\"a[data-value=\\\"About\\\"]\").tab(\"show\"); return false;' 
+                                       style='color: #87CEEB; text-decoration: underline;'>Learn more in the About section</a>
+                                 </span>
+                                 </span>")),
                                  
                                  # Health indicator buttons - more compact
                                  fluidRow(
@@ -1633,7 +1979,7 @@ ui <- fluidPage(
                       )
              ),
              
-             # LPA Page
+             ## LPA Page
              tabPanel("LPA",
                       fluidPage(
                         h3("Latent Profile Analysis"),
@@ -1687,76 +2033,167 @@ ui <- fluidPage(
                                    plotOutput("lpa_plot_compare", width = "100%", height = "600px")
                             )
                           )
-                        ),
-                        br(),
-                        
+                        )
+                      )
+             ),
+             
+             # Regression Page
+             tabPanel("Regression",
+                      fluidPage(
+                        h3("Regression Analysis"),
                         tags$div(style = "display: flex; flex-wrap: wrap;",
+                                 tags$div(style = "flex: 0 0 auto; min-width: 300px; margin-right: 30px;",
+                                          selectInput("reg_country", "Select Country:",
+                                                      choices = c("", country),
+                                                      selected = "Switzerland")
+                                 ),
+                                 tags$div(style = "flex: 0 0 auto; min-width: 250px; margin-right: 30px;",
+                                          selectInput("reg_year", "Select Survey Year:",
+                                                      choices = c("All Survey Years" = "ALL"),
+                                                      selected = "ALL")
+                                 ),
                                  tags$div(style = "flex: 0 0 auto; min-width: 200px;",
-                                          checkboxInput("show_regression", "Show Regression Results", 
+                                          checkboxInput("reg_table", "Show Table View", 
                                                         value = FALSE)
                                  )
                         ),
                         br(),
                         
-                        # Conditional Linear regression plots
-                        conditionalPanel(
-                          condition = "input.show_regression",
-                          
-                          h4("Multinomial Regression Results"),
-                          fluidRow(
-                            column(12,
+                        h4("Multinomial Regression Results"),
+                        fluidRow(
+                          column(12,
+                                 conditionalPanel(
+                                   condition = "!input.reg_table",
                                    plotOutput("multinomial_plot", width = "100%", height = "600px")
-                            )
-                          ),
-                          br(),
-                          
-                          h4("Linear Regression Results"),
-                          
-                          # Ache plots
-                          h5("Outcome Variable: Ache"),
-                          fluidRow(
-                            column(6,
+                                 ),
+                                 conditionalPanel(
+                                   condition = "input.reg_table",
+                                   tags$div(style = "font-weight: bold; font-size: 1em; margin-bottom: 10px;",
+                                            textOutput("multinomial_table_title")),
+                                   tableOutput("multinomial_table")
+                                 )
+                          )
+                        ),
+                        br(),
+                        
+                        h4("Linear Regression Results"),
+                        
+                        # Ache plots
+                        h5("Outcome Variable: Ache"),
+                        fluidRow(
+                          column(6,
+                                 conditionalPanel(
+                                   condition = "!input.reg_table",
                                    plotOutput("ache_main_plot", width = "100%", height = "500px")
-                            ),
-                            column(6,
+                                 ),
+                                 conditionalPanel(
+                                   condition = "input.reg_table",
+                                   tags$div(style = "font-weight: bold; font-size: 1em; margin-bottom: 10px;",
+                                            textOutput("ache_main_table_title")),
+                                   tableOutput("ache_main_table")
+                                 )
+                          ),
+                          column(6,
+                                 conditionalPanel(
+                                   condition = "!input.reg_table",
                                    plotOutput("ache_interaction_plot", width = "100%", height = "500px")
-                            )
-                          ),
-                          br(),
-                          
-                          # Feeling plots
-                          h5("Outcome Variable: Feeling"),
-                          fluidRow(
-                            column(6,
+                                 ),
+                                 conditionalPanel(
+                                   condition = "input.reg_table",
+                                   tags$div(style = "font-weight: bold; font-size: 1em; margin-bottom: 10px;",
+                                            textOutput("ache_interaction_table_title")),
+                                   tableOutput("ache_interaction_table")
+                                 )
+                          )
+                        ),
+                        br(),
+                        
+                        # Feeling plots
+                        h5("Outcome Variable: Feeling"),
+                        fluidRow(
+                          column(6,
+                                 conditionalPanel(
+                                   condition = "!input.reg_table",
                                    plotOutput("feeling_main_plot", width = "100%", height = "500px")
-                            ),
-                            column(6,
+                                 ),
+                                 conditionalPanel(
+                                   condition = "input.reg_table",
+                                   tags$div(style = "font-weight: bold; font-size: 1em; margin-bottom: 10px;",
+                                            textOutput("feeling_main_table_title")),
+                                   tableOutput("feeling_main_table")
+                                 )
+                          ),
+                          column(6,
+                                 conditionalPanel(
+                                   condition = "!input.reg_table",
                                    plotOutput("feeling_interaction_plot", width = "100%", height = "500px")
-                            )
-                          ),
-                          br(),
-                          
-                          # Health plots
-                          h5("Outcome Variable: Health"),
-                          fluidRow(
-                            column(6,
+                                 ),
+                                 conditionalPanel(
+                                   condition = "input.reg_table",
+                                   tags$div(style = "font-weight: bold; font-size: 1em; margin-bottom: 10px;",
+                                            textOutput("feeling_interaction_table_title")),
+                                   tableOutput("feeling_interaction_table")
+                                 )
+                          )
+                        ),
+                        br(),
+                        
+                        # Health plots
+                        h5("Outcome Variable: Health"),
+                        fluidRow(
+                          column(6,
+                                 conditionalPanel(
+                                   condition = "!input.reg_table",
                                    plotOutput("health_main_plot", width = "100%", height = "500px")
-                            ),
-                            column(6,
-                                   plotOutput("health_interaction_plot", width = "100%", height = "500px")
-                            )
+                                 ),
+                                 conditionalPanel(
+                                   condition = "input.reg_table",
+                                   tags$div(style = "font-weight: bold; font-size: 1em; margin-bottom: 10px;",
+                                            textOutput("health_main_table_title")),
+                                   tableOutput("health_main_table")
+                                 )
                           ),
-                          br(),
-                          
-                          # Life Satisfaction plots
-                          h5("Outcome Variable: Life Satisfaction"),
-                          fluidRow(
-                            column(6,
+                          column(6,
+                                 conditionalPanel(
+                                   condition = "!input.reg_table",
+                                   plotOutput("health_interaction_plot", width = "100%", height = "500px")
+                                 ),
+                                 conditionalPanel(
+                                   condition = "input.reg_table",
+                                   tags$div(style = "font-weight: bold; font-size: 1em; margin-bottom: 10px;",
+                                            textOutput("health_interaction_table_title")),
+                                   tableOutput("health_interaction_table")
+                                 )
+                          )
+                        ),
+                        br(),
+                        
+                        # Life Satisfaction plots
+                        h5("Outcome Variable: Life Satisfaction"),
+                        fluidRow(
+                          column(6,
+                                 conditionalPanel(
+                                   condition = "!input.reg_table",
                                    plotOutput("lifesat_main_plot", width = "100%", height = "500px")
-                            ),
-                            column(6,
+                                 ),
+                                 conditionalPanel(
+                                   condition = "input.reg_table",
+                                   tags$div(style = "font-weight: bold; font-size: 1em; margin-bottom: 10px;",
+                                            textOutput("lifesat_main_table_title")),
+                                   tableOutput("lifesat_main_table")
+                                 )
+                          ),
+                          column(6,
+                                 conditionalPanel(
+                                   condition = "!input.reg_table",
                                    plotOutput("lifesat_interaction_plot", width = "100%", height = "500px")
-                            )
+                                 ),
+                                 conditionalPanel(
+                                   condition = "input.reg_table",
+                                   tags$div(style = "font-weight: bold; font-size: 1em; margin-bottom: 10px;",
+                                            textOutput("lifesat_interaction_table_title")),
+                                   tableOutput("lifesat_interaction_table")
+                                 )
                           )
                         )
                       )
@@ -2237,14 +2674,7 @@ server <- function(input, output, session) {
     
   })
   
-  ### LPA Analysis and Regression
-  
-  # Generate all plots when country or year changes
-  all_plots <- reactive({
-    req(input$lpa_country != "")  
-    
-    create_all_plots(input$lpa_country, input$lpa_year)
-  })
+  ### LPA Analysis
   
   # Dynamic titles for comparison
   output$country1_title <- renderText({
@@ -2299,73 +2729,254 @@ server <- function(input, output, session) {
     }
   })
   
-  # LPA Plot
-  output$lpa_plot <- renderPlot({
-    plots <- all_plots()
-    plots$lpa_plot
-  })
-  
   # LPA Plot for single view (when not comparing)
   output$lpa_plot_single <- renderPlot({
-    plots <- all_plots()
-    plots$lpa_plot
+    req(input$lpa_country != "")
+    
+    create_lpa_plot(input$lpa_country, input$lpa_year)
   })
   
-  # LPA Plot for comparison country (just this one plot)
+  # LPA Plot for comparison view
+  output$lpa_plot <- renderPlot({
+    req(input$lpa_country != "")
+    
+    create_lpa_plot(input$lpa_country, input$lpa_year)
+  })
+  
+  # LPA Plot for comparison country
   output$lpa_plot_compare <- renderPlot({
     req(input$compare_countries, input$lpa_country_compare != "")
     
     create_lpa_plot(input$lpa_country_compare, input$lpa_year)
   })
   
+  ### Regression analysis
+  
+  # Generate all regression plots when country or year changes
+  reg_plots <- reactive({
+    req(input$reg_country != "")  
+    
+    create_reg_plots(input$reg_country, input$reg_year)
+  })
+  
+  # Get regression data for tables
+  reg_data <- reactive({
+    req(input$reg_country != "")
+    
+    get_reg_data(input$reg_country, input$reg_year)
+  })
+  
+  # Reactive expression for available years for Regression
+  available_reg_years <- reactive({
+    req(input$reg_country)
+    
+    years <- hbsc_label %>%
+      filter(countryname == input$reg_country) %>%
+      distinct(surveyyear) %>%
+      arrange(surveyyear) %>%
+      pull(surveyyear)
+    
+    year_choices <- as.list(years)
+    names(year_choices) <- years
+    return(year_choices)
+  })
+  
+  observeEvent(input$reg_country, {
+    if (input$reg_country != "") {
+      years <- available_reg_years()
+      
+      if (!is.null(years) && length(years) > 0) {
+        all_choices <- c("All Survey Years" = "ALL", years)
+        
+        updateSelectInput(session, "reg_year",
+                          choices = all_choices,
+                          selected = "ALL"
+        )
+      }
+    } else {
+      # Reset to default when no country selected
+      updateSelectInput(session, "reg_year",
+                        choices = c("All Survey Years" = "ALL", "Select a country first" = "none"),
+                        selected = "ALL"
+      )
+    }
+  })
+  
+  # Title outputs
+  output$multinomial_table_title <- renderText({
+    paste("Multinomial Regression: Odds Ratios by Profile -", input$reg_country,
+          ifelse(!is.null(input$reg_year) && input$reg_year != "ALL", paste0(" ", input$reg_year), ""))
+  })
+  
+  output$ache_main_table_title <- renderText({
+    paste("Main Effects - Outcome Variable: ache -", input$reg_country,
+          ifelse(!is.null(input$reg_year) && input$reg_year != "ALL", paste0(" ", input$reg_year), ""))
+  })
+  
+  output$ache_interaction_table_title <- renderText({
+    paste("With Interaction - Outcome Variable: ache -", input$reg_country,
+          ifelse(!is.null(input$reg_year) && input$reg_year != "ALL", paste0(" ", input$reg_year), ""))
+  })
+  
+  output$feeling_main_table_title <- renderText({
+    paste("Main Effects - Outcome Variable: feeling -", input$reg_country,
+          ifelse(!is.null(input$reg_year) && input$reg_year != "ALL", paste0(" ", input$reg_year), ""))
+  })
+  
+  output$feeling_interaction_table_title <- renderText({
+    paste("With Interaction - Outcome Variable: feeling -", input$reg_country,
+          ifelse(!is.null(input$reg_year) && input$reg_year != "ALL", paste0(" ", input$reg_year), ""))
+  })
+  
+  output$health_main_table_title <- renderText({
+    paste("Main Effects - Outcome Variable: health -", input$reg_country,
+          ifelse(!is.null(input$reg_year) && input$reg_year != "ALL", paste0(" ", input$reg_year), ""))
+  })
+  
+  output$health_interaction_table_title <- renderText({
+    paste("With Interaction - Outcome Variable: health -", input$reg_country,
+          ifelse(!is.null(input$reg_year) && input$reg_year != "ALL", paste0(" ", input$reg_year), ""))
+  })
+  
+  output$lifesat_main_table_title <- renderText({
+    paste("Main Effects - Outcome Variable: lifesat -", input$reg_country,
+          ifelse(!is.null(input$reg_year) && input$reg_year != "ALL", paste0(" ", input$reg_year), ""))
+  })
+  
+  output$lifesat_interaction_table_title <- renderText({
+    paste("With Interaction - Outcome Variable: lifesat -", input$reg_country,
+          ifelse(!is.null(input$reg_year) && input$reg_year != "ALL", paste0(" ", input$reg_year), ""))
+  })
+  
   # Multinomial Regression Plot
   output$multinomial_plot <- renderPlot({
-    plots <- all_plots()
+    plots <- reg_plots()
     plots$multinomial_plot
   })
   
+  # Multinomial Regression Table
+  output$multinomial_table <- renderTable({
+    req(input$reg_table)
+    data <- reg_data()
+    if (!is.null(data$multinomial)) {
+      data$multinomial %>%
+        mutate(across(where(is.numeric), ~round(.x, 3)))
+    }
+  }, striped = TRUE, hover = TRUE, bordered = TRUE)
+  
   # Linear Regression Plots - Main Effects
   output$ache_main_plot <- renderPlot({
-    plots <- all_plots()
+    plots <- reg_plots()
     plots$linear_plots_main$ache
   })
   
+  output$ache_main_table <- renderTable({
+    req(input$reg_table)
+    data <- reg_data()
+    if (!is.null(data$linear_main$ache)) {
+      data$linear_main$ache %>%
+        mutate(across(where(is.numeric), ~round(.x, 3)))
+    }
+  }, striped = TRUE, hover = TRUE, bordered = TRUE)
+  
   output$feeling_main_plot <- renderPlot({
-    plots <- all_plots()
+    plots <- reg_plots()
     plots$linear_plots_main$feeling
   })
   
+  output$feeling_main_table <- renderTable({
+    req(input$reg_table)
+    data <- reg_data()
+    if (!is.null(data$linear_main$feeling)) {
+      data$linear_main$feeling %>%
+        mutate(across(where(is.numeric), ~round(.x, 3)))
+    }
+  }, striped = TRUE, hover = TRUE, bordered = TRUE)
+  
   output$health_main_plot <- renderPlot({
-    plots <- all_plots()
+    plots <- reg_plots()
     plots$linear_plots_main$health
   })
   
+  output$health_main_table <- renderTable({
+    req(input$reg_table)
+    data <- reg_data()
+    if (!is.null(data$linear_main$health)) {
+      data$linear_main$health %>%
+        mutate(across(where(is.numeric), ~round(.x, 3)))
+    }
+  }, striped = TRUE, hover = TRUE, bordered = TRUE)
+  
   output$lifesat_main_plot <- renderPlot({
-    plots <- all_plots()
+    plots <- reg_plots()
     plots$linear_plots_main$lifesat
   })
   
+  output$lifesat_main_table <- renderTable({
+    req(input$reg_table)
+    data <- reg_data()
+    if (!is.null(data$linear_main$lifesat)) {
+      data$linear_main$lifesat %>%
+        mutate(across(where(is.numeric), ~round(.x, 3)))
+    }
+  }, striped = TRUE, hover = TRUE, bordered = TRUE)
+  
   # Linear Regression Plots - With Interaction
   output$ache_interaction_plot <- renderPlot({
-    plots <- all_plots()
+    plots <- reg_plots()
     plots$linear_plots_interaction$ache
   })
   
+  output$ache_interaction_table <- renderTable({
+    req(input$reg_table)
+    data <- reg_data()
+    if (!is.null(data$linear_interaction$ache)) {
+      data$linear_interaction$ache %>%
+        mutate(across(where(is.numeric), ~round(.x, 3)))
+    }
+  }, striped = TRUE, hover = TRUE, bordered = TRUE)
+  
   output$feeling_interaction_plot <- renderPlot({
-    plots <- all_plots()
+    plots <- reg_plots()
     plots$linear_plots_interaction$feeling
   })
   
+  output$feeling_interaction_table <- renderTable({
+    req(input$reg_table)
+    data <- reg_data()
+    if (!is.null(data$linear_interaction$feeling)) {
+      data$linear_interaction$feeling %>%
+        mutate(across(where(is.numeric), ~round(.x, 3)))
+    }
+  }, striped = TRUE, hover = TRUE, bordered = TRUE)
+  
   output$health_interaction_plot <- renderPlot({
-    plots <- all_plots()
+    plots <- reg_plots()
     plots$linear_plots_interaction$health
   })
   
+  output$health_interaction_table <- renderTable({
+    req(input$reg_table)
+    data <- reg_data()
+    if (!is.null(data$linear_interaction$health)) {
+      data$linear_interaction$health %>%
+        mutate(across(where(is.numeric), ~round(.x, 3)))
+    }
+  }, striped = TRUE, hover = TRUE, bordered = TRUE)
+  
   output$lifesat_interaction_plot <- renderPlot({
-    plots <- all_plots()
+    plots <- reg_plots()
     plots$linear_plots_interaction$lifesat
   })
   
+  output$lifesat_interaction_table <- renderTable({
+    req(input$reg_table)
+    data <- reg_data()
+    if (!is.null(data$linear_interaction$lifesat)) {
+      data$linear_interaction$lifesat %>%
+        mutate(across(where(is.numeric), ~round(.x, 3)))
+    }
+  }, striped = TRUE, hover = TRUE, bordered = TRUE)
 }
 
 # Run the application 

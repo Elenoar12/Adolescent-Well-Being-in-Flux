@@ -1,0 +1,21 @@
+"Variable","LatentClass","Estimate","SE","PValue","Proportion"
+"Physical Inactivity","1",-0.106,0.016,0,85.4
+"Sleep Problems","1",0.017,0.018,0.346,85.4
+"Unhealthy Diet","1",-0.218,0.019,0,85.4
+"Smoking","1",-0.405,0,0,85.4
+"Alcohol","1",-0.691,0.006,0,85.4
+"Physical Inactivity","2",-0.031,0.077,0.686,5.5
+"Sleep Problems","2",0.652,0.088,0,5.5
+"Unhealthy Diet","2",0.457,0.083,0,5.5
+"Smoking","2",2.99,0.015,0,5.5
+"Alcohol","2",0.445,0.101,0,5.5
+"Physical Inactivity","3",-0.04,0.065,0.544,5.8
+"Sleep Problems","3",0.243,0.072,0.001,5.8
+"Unhealthy Diet","3",0.071,0.072,0.326,5.8
+"Smoking","3",0.302,0.016,0,5.8
+"Alcohol","3",-0.248,0.044,0,5.8
+"Physical Inactivity","4",0.04,0.086,0.643,3.3
+"Sleep Problems","4",0.427,0.102,0,3.3
+"Unhealthy Diet","4",0.148,0.097,0.126,3.3
+"Smoking","4",1.657,0.026,0,3.3
+"Alcohol","4",0.203,0.102,0.047,3.3

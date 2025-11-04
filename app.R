@@ -18,12 +18,17 @@ hbsc <- read.csv(data_path, header=TRUE)
 # Define Variables
 pred_vars <- c("physinact", "sleepprob", "undiet", "smoking", "alcohol")
 
-# Z-Standardized data per country before summary stats
+# Z-Standardized data per country (more than one survey year) before summary stats
+survey_counts <- hbsc %>%
+  group_by(countryname) %>%
+  summarise(n_surveys = n_distinct(surveyyear))
+
 z_hbsc <- hbsc %>%
+  left_join(survey_counts, by = "countryname") %>%
+  filter(n_surveys > 1) %>%
   group_by(countryname) %>%
   mutate(across(all_of(pred_vars),
-                ~ scale(.) %>%
-                  as.vector())) %>%
+                ~ scale(.) %>% as.vector())) %>%
   ungroup()
 
 # Compute mean for each country and survey year
@@ -611,15 +616,27 @@ desc_histograms <- function(data, countryname = NULL, surveyyear = NULL, variabl
     likert_alcohol = c("1" = "Never", "2" = "Rarely", "3" = "Every month", 
                        "4" = "Every week", "5" = "Every day")
     
-    plot_list[["beer"]] <- create_histogram(filtered_data, "beer", lit_q_alcohol, likert_alcohol)
-    plot_list[["wine"]] <- create_histogram(filtered_data, "wine", lit_q_alcohol, likert_alcohol)
-    plot_list[["spirits"]] <- create_histogram(filtered_data, "spirits", lit_q_alcohol, likert_alcohol)
-    
-    if (surveyyear %in% c(2014, 2018)){
+    if (surveyyear == 2014){
+      # Plot all for 2014
+      plot_list[["beer"]] <- create_histogram(filtered_data, "beer", lit_q_alcohol, likert_alcohol)
+      plot_list[["wine"]] <- create_histogram(filtered_data, "wine", lit_q_alcohol, likert_alcohol)
+      plot_list[["spirits"]] <- create_histogram(filtered_data, "spirits", lit_q_alcohol, likert_alcohol)
+      
       lit_q_alc30d_2 = "On how many days (if any) have you drunk alcohol?"
       likert_alc30d_2 = c("1" = "Never", "2" = "1-2 days", "3" = "3-5 days", "4" = "6-9 days", 
                           "5" = "10-19 days", "6" = "20-29 days", "7" = "30 days (or more)")
       plot_list[["alc30d"]] <- create_histogram(filtered_data, "alc30d", lit_q_alc30d_2, likert_alc30d_2)
+    } else if (surveyyear == 2018){
+      # Only 30d for 2018
+      lit_q_alc30d_2 = "On how many days (if any) have you drunk alcohol?"
+      likert_alc30d_2 = c("1" = "Never", "2" = "1-2 days", "3" = "3-5 days", "4" = "6-9 days", 
+                          "5" = "10-19 days", "6" = "20-29 days", "7" = "30 days (or more)")
+      plot_list[["alc30d"]] <- create_histogram(filtered_data, "alc30d", lit_q_alc30d_2, likert_alc30d_2)
+    } else {
+      # Only beer, wine, spirits for before 2014
+      plot_list[["beer"]] <- create_histogram(filtered_data, "beer", lit_q_alcohol, likert_alcohol)
+      plot_list[["wine"]] <- create_histogram(filtered_data, "wine", lit_q_alcohol, likert_alcohol)
+      plot_list[["spirits"]] <- create_histogram(filtered_data, "spirits", lit_q_alcohol, likert_alcohol)
     }
   }
   
@@ -632,35 +649,32 @@ desc_histograms <- function(data, countryname = NULL, surveyyear = NULL, variabl
     likert_smoking = c("1" = "Don't", "2" = "Less than once a week", 
                        "3" = "Once a week", "4" = "Every day")
     
-    plot_list[["smoking"]] <- create_histogram(filtered_data, "smoking", lit_q_smoking, likert_smoking)
-    
-    if (surveyyear %in% c(2014, 2018)){
+    if (surveyyear == 2014){
+      # Plot all for 2014
+      plot_list[["smoking"]] <- create_histogram(filtered_data, "smoking", lit_q_smoking, likert_smoking)
+      
       lit_q_smok30d_2 = "On how many days (if any) have you smoked cigarettes?"
       likert_smok30d_2 = c("1" = "Never", "2" = "1-2 days", "3" = "3-5 days", "4" = "6-9 days", 
                            "5" = "10-19 days", "6" = "20-29 days", "7" = "30 days (or more)")
       plot_list[["smok30d"]] <- create_histogram(filtered_data, "smok30d", lit_q_smok30d_2, likert_smok30d_2)
+    } else if (surveyyear == 2018){
+      # Only 30d for 2018
+      lit_q_smok30d_2 = "On how many days (if any) have you smoked cigarettes?"
+      likert_smok30d_2 = c("1" = "Never", "2" = "1-2 days", "3" = "3-5 days", "4" = "6-9 days", 
+                           "5" = "10-19 days", "6" = "20-29 days", "7" = "30 days (or more)")
+      plot_list[["smok30d"]] <- create_histogram(filtered_data, "smok30d", lit_q_smok30d_2, likert_smok30d_2)
+    } else {
+      # Only smoking for before 2014
+      plot_list[["smoking"]] <- create_histogram(filtered_data, "smoking", lit_q_smoking, likert_smoking)
     }
   }
   
   return(plot_list)
-  
 }
 
 ### LPA panel data processing
 
 hbsc_labels <- read_excel("data/hbsc_labels.xlsx")
-
-# Nested directory for profile mapping
-profile_mapping <- list(
-  "Switzerland" = list(
-    "ALL" = c("Moderate risk varying substance use", "High substance use", "Low risk", "High risk"),
-    "2002" = c("High substance use", "Low risk", "Moderate risk varying substance use", "High risk"),
-    "2006" = c("Low risk", "Moderate risk varying substance use", "High substance use", "High risk"),
-    "2010" = c("High substance use", "High risk", "Moderate risk varying substance use", "Low risk"),
-    "2014" = c("Low risk", "High substance use", "High risk", "Moderate risk varying substance use"),
-    "2018" = c("High substance use", "Low risk", "Moderate risk varying substance use", "High risk")
-  )
-)
 
 # Function to convert hbsc_labels to nested list structure (removes NAs properly)
 convert_to_profile_mapping <- function(df) {
@@ -1577,7 +1591,7 @@ get_reg_data <- function(input_country, input_year = NULL) {
 
 agecat_map <- c("11 y/o" = 1, "13 y/o" = 2, "15 y/o" = 3)
 
-country <- unique(hbsc$countryname)
+country <- sort(unique(hbsc$countryname))
 
 survey_years <- unique(hbsc$surveyyear)
 

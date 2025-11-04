@@ -2346,7 +2346,7 @@ server <- function(input, output, session) {
     req(input$country)
     
     # Filter data for selected country and survey year
-    country_data <- filterData(z_hbsc, input$country, input$surveyyear)
+    country_data <- filterData(hbsc, input$country, input$surveyyear)
     
     # Remap age using agecat_map with correct column name
     country_data$age_category <- names(agecat_map)[match(country_data$agecat, agecat_map)]
@@ -2380,7 +2380,7 @@ server <- function(input, output, session) {
     req(input$country)
     
     # Filter data for selected country and survey year
-    country_data <- filterData(z_hbsc, input$country, input$surveyyear)
+    country_data <- filterData(hbsc, input$country, input$surveyyear)
     
     # Create title based on survey year selection
     plot_title <- if (!is.null(input$surveyyear) && input$surveyyear != "" && input$surveyyear != "ALL") {
@@ -2414,7 +2414,7 @@ server <- function(input, output, session) {
     req(input$country)
     
     # Filter data for selected country and survey year
-    country_data <- filterData(z_hbsc, input$country, input$surveyyear)
+    country_data <- filterData(hbsc, input$country, input$surveyyear)
     
     # Remap age using agecat_map with correct column name
     country_data$age_category <- names(agecat_map)[match(country_data$agecat, agecat_map)]
@@ -2448,7 +2448,7 @@ server <- function(input, output, session) {
     req(input$country)
     
     # Filter data for selected country and survey year
-    country_data <- filterData(z_hbsc, input$country, input$surveyyear)
+    country_data <- filterData(hbsc, input$country, input$surveyyear)
     
     # Create title based on survey year selection
     plot_title <- if (!is.null(input$surveyyear) && input$surveyyear != "" && input$surveyyear != "ALL") {

@@ -724,10 +724,10 @@ create_lpa_plot <- function(input_country, input_year = NULL) {
     label = c("Low risk", 
               "Slightly elevated substance use", 
               "Moderate substance use", 
-              "Slightly reduced high risk", 
+              "Moderate risk (mixed)", 
               "High sleep problems", 
               "High alcohol use", 
-              "High risk"),
+              "Highest risk"),
     order = 1:7,
     color = c("#29af7f", "#bddf26", "#ffd92f", "#fc8d59", "#2e6f8e", "#8856a7", "#482173"),
     linetype = c("solid", "dashed", "longdash", "dotdash", "dotted", "dashed", "solid"),
@@ -950,9 +950,36 @@ create_lpa_plot <- function(input_country, input_year = NULL) {
     return(plot)
     
   }, error = function(e) {
-    # Return an error plot if something goes wrong
+    # Check for missing predictor variables in HBSC data
+    pred_labels <- c("Physical Inactivity", "Sleep Problems", "Unhealthy Diet", "Smoking", "Alcohol Consumption")
+    
+    tryCatch({
+      # Filter HBSC data for the specific country and year
+      if (!is.null(input_year) && input_year != "ALL") {
+        hbsc_subset <- hbsc %>% 
+          filter(countryname == input_country, surveyyear == input_year)
+      } else {
+        hbsc_subset <- hbsc %>% 
+          filter(countryname == input_country)
+      }
+      
+      # Check which variable is missing (all NA)
+      if (nrow(hbsc_subset) > 0) {
+        missing_var <- sapply(pred_vars, function(var) {
+          all(is.na(hbsc_subset[[var]]))
+        })
+        
+        if (any(missing_var)) {
+          missing_label <- pred_labels[missing_var][1]
+          error_msg <- paste("The risk behavior variable", missing_label, 
+                             "was not collected in", input_country, input_year, ": Unable to calculate LPA profiles")
+        }
+      }
+    })
+    
+    # Return an error plot
     ggplot() + 
-      annotate("text", x = 0.5, y = 0.5, label = paste("Error loading data for", input_country, ":", e$message)) +
+      annotate("text", x = 0.5, y = 0.5, label = error_msg) +
       theme_void()
   })
 }
@@ -965,10 +992,10 @@ create_multinomial_plot <- function(input_country, input_year = NULL) {
     label = c("Low risk", 
               "Slightly elevated substance use", 
               "Moderate substance use", 
-              "Slightly reduced high risk", 
+              "Moderate risk (mixed)", 
               "High sleep problems", 
               "High alcohol use", 
-              "High risk"),
+              "Highest risk"),
     order = 1:7,
     color = c("#29af7f", "#bddf26", "#ffd92f", "#fc8d59", "#2e6f8e", "#8856a7", "#482173"),
     shape = c(16, 17, 18, 15, 4, 8, 16),
@@ -1118,9 +1145,46 @@ create_multinomial_plot <- function(input_country, input_year = NULL) {
     return(plot)
     
   }, error = function(e) {
-    # Return an error plot if something goes wrong
+    # PRETEST 1: Check for missing predictor variables in HBSC data
+    pred_labels <- c("Physical Inactivity", "Sleep Problems", "Unhealthy Diet", "Smoking", "Alcohol Consumption")
+    
+    tryCatch({
+      # Filter HBSC data for the specific country and year
+      if (!is.null(input_year) && input_year != "ALL") {
+        hbsc_subset <- hbsc %>% 
+          filter(countryname == input_country, surveyyear == input_year)
+      } else {
+        hbsc_subset <- hbsc %>% 
+          filter(countryname == input_country)
+      }
+      
+      # Check which predictor variable is missing (all NA)
+      if (nrow(hbsc_subset) > 0) {
+        missing_var <- sapply(pred_vars, function(var) {
+          all(is.na(hbsc_subset[[var]]))
+        })
+        
+        if (any(missing_var)) {
+          missing_label <- pred_labels[which(missing_var)[1]]
+          error_msg <- paste("The risk behavior variable", missing_label, 
+                             "was not collected in", input_country, input_year, 
+                             ": Unable to calculate profiles and regressions")
+          return(ggplot() + 
+                   annotate("text", x = 0.5, y = 0.5, label = error_msg, size = 5) +
+                   theme_void())
+        }
+      }
+    }, error = function(e2) {
+      # If the pretest itself fails, continue to next check
+    })
+    
+    # PRETEST 2: Check for missing outcome variable
+    error_msg <- paste("The outcome variable", outcome_variable, 
+                       "was not collected in", input_country, input_year)
+    
+    # Return error plot
     ggplot() + 
-      annotate("text", x = 0.5, y = 0.5, label = paste("Error loading multinomial data for", input_country, ":", e$message)) +
+      annotate("text", x = 0.5, y = 0.5, label = error_msg, size = 5) +
       theme_void()
   })
 }
@@ -1133,10 +1197,10 @@ create_linear_plot_interaction <- function(input_country, input_year = NULL, out
     label = c("Low risk", 
               "Slightly elevated substance use", 
               "Moderate substance use", 
-              "Slightly reduced high risk", 
+              "Moderate risk (mixed)", 
               "High sleep problems", 
               "High alcohol use", 
-              "High risk"),
+              "Highest risk"),
     order = 1:7,
     color = c("#29af7f", "#bddf26", "#ffd92f", "#fc8d59", "#2e6f8e", "#8856a7", "#482173"),
     shape = c(16, 17, 18, 15, 4, 8, 16),
@@ -1326,9 +1390,46 @@ create_linear_plot_interaction <- function(input_country, input_year = NULL, out
     return(plot)
     
   }, error = function(e) {
-    # Return an error plot if something goes wrong
+    # PRETEST 1: Check for missing predictor variables in HBSC data
+    pred_labels <- c("Physical Inactivity", "Sleep Problems", "Unhealthy Diet", "Smoking", "Alcohol Consumption")
+    
+    tryCatch({
+      # Filter HBSC data for the specific country and year
+      if (!is.null(input_year) && input_year != "ALL") {
+        hbsc_subset <- hbsc %>% 
+          filter(countryname == input_country, surveyyear == input_year)
+      } else {
+        hbsc_subset <- hbsc %>% 
+          filter(countryname == input_country)
+      }
+      
+      # Check which predictor variable is missing (all NA)
+      if (nrow(hbsc_subset) > 0) {
+        missing_var <- sapply(pred_vars, function(var) {
+          all(is.na(hbsc_subset[[var]]))
+        })
+        
+        if (any(missing_var)) {
+          missing_label <- pred_labels[which(missing_var)[1]]
+          error_msg <- paste("The risk behavior variable", missing_label, 
+                             "was not collected in", input_country, input_year, 
+                             ": Unable to calculate profiles and regressions")
+          return(ggplot() + 
+                   annotate("text", x = 0.5, y = 0.5, label = error_msg, size = 5) +
+                   theme_void())
+        }
+      }
+    }, error = function(e2) {
+      # If the pretest itself fails, continue to next check
+    })
+    
+    # PRETEST 2: Check for missing outcome variable
+    error_msg <- paste("The outcome variable", outcome_variable, 
+                       "was not collected in", input_country, input_year)
+    
+    # Return error plot
     ggplot() + 
-      annotate("text", x = 0.5, y = 0.5, label = paste("Error loading linear interaction data for", input_country, outcome_variable, ":", e$message)) +
+      annotate("text", x = 0.5, y = 0.5, label = error_msg, size = 5) +
       theme_void()
   })
 }
@@ -1341,10 +1442,10 @@ create_linear_plot_main <- function(input_country, input_year = NULL, outcome_va
     label = c("Low risk", 
               "Slightly elevated substance use", 
               "Moderate substance use", 
-              "Slightly reduced high risk", 
+              "Moderate risk (mixed)", 
               "High sleep problems", 
               "High alcohol use", 
-              "High risk"),
+              "Highest risk"),
     order = 1:7,
     color = c("#29af7f", "#bddf26", "#ffd92f", "#fc8d59", "#2e6f8e", "#8856a7", "#482173"),
     shape = c(16, 17, 18, 15, 4, 8, 16),
@@ -1511,9 +1612,46 @@ create_linear_plot_main <- function(input_country, input_year = NULL, outcome_va
     return(plot)
     
   }, error = function(e) {
-    # Return an error plot if something goes wrong
+    # PRETEST 1: Check for missing predictor variables in HBSC data
+    pred_labels <- c("Physical Inactivity", "Sleep Problems", "Unhealthy Diet", "Smoking", "Alcohol Consumption")
+    
+    tryCatch({
+      # Filter HBSC data for the specific country and year
+      if (!is.null(input_year) && input_year != "ALL") {
+        hbsc_subset <- hbsc %>% 
+          filter(countryname == input_country, surveyyear == input_year)
+      } else {
+        hbsc_subset <- hbsc %>% 
+          filter(countryname == input_country)
+      }
+      
+      # Check which predictor variable is missing (all NA)
+      if (nrow(hbsc_subset) > 0) {
+        missing_var <- sapply(pred_vars, function(var) {
+          all(is.na(hbsc_subset[[var]]))
+        })
+        
+        if (any(missing_var)) {
+          missing_label <- pred_labels[which(missing_var)[1]]
+          error_msg <- paste("The risk behavior variable", missing_label, 
+                             "was not collected in", input_country, input_year, 
+                             ": Unable to calculate profiles and regressions")
+          return(ggplot() + 
+                   annotate("text", x = 0.5, y = 0.5, label = error_msg, size = 5) +
+                   theme_void())
+        }
+      }
+    }, error = function(e2) {
+      # If the pretest itself fails, continue to next check
+    })
+    
+    # PRETEST 2: Check for missing outcome variable
+    error_msg <- paste("The outcome variable", outcome_variable, 
+                       "was not collected in", input_country, input_year)
+    
+    # Return error plot
     ggplot() + 
-      annotate("text", x = 0.5, y = 0.5, label = paste("Error loading linear main effects data for", input_country, outcome_variable, ":", e$message)) +
+      annotate("text", x = 0.5, y = 0.5, label = error_msg, size = 5) +
       theme_void()
   })
 }

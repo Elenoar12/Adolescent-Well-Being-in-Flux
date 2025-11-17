@@ -727,10 +727,10 @@ create_lpa_plot <- function(input_country, input_year = NULL) {
               "High sleep problems", 
               "High alcohol use", 
               "Highest risk"),
-    order = 1:7,
-    color = c("#29af7f", "#bddf26", "#ffd92f", "#fc8d59", "#2e6f8e", "#8856a7", "#482173"),
-    linetype = c("solid", "dashed", "longdash", "dotdash", "dotted", "dashed", "solid"),
-    shape = c(16, 17, 18, 15, 4, 8, 16),
+    order = 1:6,
+    color = c("#29af7f", "#bddf26", "#ffd92f", "#2e6f8e", "#8856a7", "#482173"),
+    linetype = c("solid", "dashed", "longdash", "dotted", "dashed", "solid"),
+    shape = c(16, 17, 18, 4, 8, 16),
     stringsAsFactors = FALSE
   )
   
@@ -990,13 +990,13 @@ create_multinomial_plot <- function(input_country, input_year = NULL) {
   profile_styles <- data.frame(
     label = c("Low risk", 
               "Slightly elevated substance use", 
-              "Moderate substance use", 
+              "Moderate substance use",
               "High sleep problems", 
               "High alcohol use", 
               "Highest risk"),
-    order = 1:7,
-    color = c("#29af7f", "#bddf26", "#ffd92f", "#fc8d59", "#2e6f8e", "#8856a7", "#482173"),
-    shape = c(16, 17, 18, 15, 4, 8, 16),
+    order = 1:6,
+    color = c("#29af7f", "#bddf26", "#ffd92f", "#2e6f8e", "#8856a7", "#482173"),
+    shape = c(16, 17, 18, 4, 8, 16),
     stringsAsFactors = FALSE
   )
   
@@ -1198,9 +1198,9 @@ create_linear_plot_interaction <- function(input_country, input_year = NULL, out
               "High sleep problems", 
               "High alcohol use", 
               "Highest risk"),
-    order = 1:7,
-    color = c("#29af7f", "#bddf26", "#ffd92f", "#fc8d59", "#2e6f8e", "#8856a7", "#482173"),
-    shape = c(16, 17, 18, 15, 4, 8, 16),
+    order = 1:6,
+    color = c("#29af7f", "#bddf26", "#ffd92f", "#2e6f8e", "#8856a7", "#482173"),
+    shape = c(16, 17, 18, 4, 8, 16),
     stringsAsFactors = FALSE
   )
   
@@ -1442,9 +1442,9 @@ create_linear_plot_main <- function(input_country, input_year = NULL, outcome_va
               "High sleep problems", 
               "High alcohol use", 
               "Highest risk"),
-    order = 1:7,
-    color = c("#29af7f", "#bddf26", "#ffd92f", "#fc8d59", "#2e6f8e", "#8856a7", "#482173"),
-    shape = c(16, 17, 18, 15, 4, 8, 16),
+    order = 1:6,
+    color = c("#29af7f", "#bddf26", "#ffd92f", "#2e6f8e", "#8856a7", "#482173"),
+    shape = c(16, 17, 18, 4, 8, 16),
     stringsAsFactors = FALSE
   )
   

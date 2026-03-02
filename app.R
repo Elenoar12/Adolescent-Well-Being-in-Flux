@@ -15,6 +15,12 @@ library(readxl)
 data_path = "data/hbsc_variables.csv"
 hbsc <- read.csv(data_path, header=TRUE)
 
+# Exclude select countries from data set
+hbsc <- hbsc %>% 
+  filter(!countryname %in% c("Russia",      # See exclusion from HBSC project
+                             "Turkey",      # Substance use was not surveyed
+                             "Kazakhstan")) # LPA analysis resulted in only C1 solution
+
 # Define Variables
 pred_vars <- c("physinact", "sleepprob", "undiet", "smoking", "alcohol")
 
@@ -183,13 +189,6 @@ ukraine_with_crimea <- ukraine_record %>%
 
 # Add to hbsc_map
 hbsc_map <- st_as_sf(bind_rows(hbsc_map, ukraine_with_crimea))
-
-# Exclude Russia from data set
-hbsc_map <- hbsc_map %>%
-  filter(!(countryname == "Russia"))
-
-hbsc <- hbsc %>% 
-  filter(!(countryname == "Russia"))
 
 # Function to generate the Leaflet map for any variable
 generate_map <- function(variable, year) {
@@ -1715,7 +1714,73 @@ get_reg_data <- function(input_country, input_year = NULL) {
   }
   
   multinom_data <- tryCatch(read.csv(multinom_path), error = function(e) NULL)
-  
+
+  # Apply profile name mapping to term column if available
+  use_mapping <- input_country %in% names(profile_mapping) &&
+    year_key %in% names(profile_mapping[[input_country]])
+
+  rename_profile_terms <- function(df) {
+    if (is.null(df) || !use_mapping) return(df)
+    if ("term" %in% names(df)) {
+      df <- df %>%
+        mutate(term = sapply(term, function(t) {
+          if (grepl("^profile[0-9]+", t)) {
+            profile_num <- as.numeric(gsub("profile", "", gsub(":.*", "", t)))
+            profile_name <- profile_mapping[[input_country]][[year_key]][profile_num]
+            gsub(paste0("^profile", profile_num), profile_name, t)
+          } else {
+            as.character(t)
+          }
+        }))
+    }
+    if ("y.level" %in% names(df)) {
+      df <- df %>%
+        mutate(y.level = sapply(y.level, function(y) {
+          label <- profile_mapping[[input_country]][[year_key]][as.numeric(y)]
+          if (!is.null(label) && !is.na(label)) label else as.character(y)
+        }))
+    }
+    df
+  }
+
+  # Profile label order (same as in plot functions)
+  ps_labels <- c("Low risk", "Slightly elevated substance use", "Moderate substance use",
+                 "High sleep problems", "High alcohol use", "Highest risk")
+
+  get_profile_order <- function(label) {
+    label_part <- gsub(":.*", "", as.character(label))
+    for (i in seq_along(ps_labels)) {
+      if (grepl(paste0("^", ps_labels[i]), label_part)) return(i)
+    }
+    return(NA_integer_)
+  }
+
+  order_table_rows <- function(df) {
+    if (is.null(df) || !use_mapping) return(df)
+    if ("y.level" %in% names(df)) {
+      # Multinomial: sort by y.level profile order
+      df$y_order <- sapply(df$y.level, get_profile_order)
+      df <- df[order(is.na(df$y_order), df$y_order), ]
+      df$y_order <- NULL
+    } else if ("term" %in% names(df)) {
+      # Linear: profile non-interaction terms first (in profile order), then other terms, then interactions
+      df$term_order    <- sapply(df$term, get_profile_order)
+      df$is_interaction <- grepl(":", df$term)
+      df$sort_group    <- ifelse(!is.na(df$term_order) & !df$is_interaction, 1,
+                          ifelse( is.na(df$term_order) & !df$is_interaction, 2, 3))
+      df <- df[order(df$sort_group, df$term_order), ]
+      df$term_order <- NULL
+      df$is_interaction <- NULL
+      df$sort_group <- NULL
+    }
+    rownames(df) <- NULL
+    df
+  }
+
+  multinom_data <- order_table_rows(rename_profile_terms(multinom_data))
+  linear_main_data <- lapply(linear_main_data, function(d) order_table_rows(rename_profile_terms(d)))
+  linear_interaction_data <- lapply(linear_interaction_data, function(d) order_table_rows(rename_profile_terms(d)))
+
   return(list(
     multinomial = multinom_data,
     linear_main = linear_main_data,
@@ -2004,7 +2069,7 @@ ui <- fluidPage(
                                  tags$div(style = "width: 250px;",
                                           selectInput("country", "Select Country:",
                                                       choices = c("", country),
-                                                      selected = "Switzerland")
+                                                      selected = country[1])
                                  ),
                                  tags$div(style = "width: 250px;",
                                           selectInput("surveyyear", "Select Survey Year:",
@@ -2135,7 +2200,7 @@ ui <- fluidPage(
                                  tags$div(style = "flex: 0 0 auto; min-width: 300px; margin-right: 30px;",
                                           selectInput("lpa_country", "Select Country:",
                                                       choices = c("", country),
-                                                      selected = "Switzerland")
+                                                      selected = country[1])
                                  ),
                                  tags$div(style = "flex: 0 0 auto; min-width: 250px; margin-right: 30px;",
                                           selectInput("lpa_year", "Select Survey Year:",
@@ -2181,6 +2246,13 @@ ui <- fluidPage(
                                    plotOutput("lpa_plot_compare", width = "100%", height = "600px")
                             )
                           )
+                        ),
+
+                        br(),
+                        checkboxInput("lpa_model_fit", "Show Model Fit", value = FALSE),
+                        conditionalPanel(
+                          condition = "input.lpa_model_fit",
+                          uiOutput("lpa_model_fit_table")
                         )
                       )
              ),
@@ -2193,7 +2265,7 @@ ui <- fluidPage(
                                  tags$div(style = "flex: 0 0 auto; min-width: 300px; margin-right: 30px;",
                                           selectInput("reg_country", "Select Country:",
                                                       choices = c("", country),
-                                                      selected = "Switzerland")
+                                                      selected = country[1])
                                  ),
                                  tags$div(style = "flex: 0 0 auto; min-width: 250px; margin-right: 30px;",
                                           selectInput("reg_year", "Select Survey Year:",
@@ -2350,9 +2422,48 @@ ui <- fluidPage(
              # About Page
              tabPanel("About",
                       fluidPage(
-                        h3("About the Project"),
-                        br(),
-                        p("This section will present the detailed information about the project, methods and personnel")
+                        h3("About This Study"),
+                        div(style = "padding: 10px 20px;",
+                        HTML("
+<h4 style='margin-top:20px; margin-bottom:8px;'>Data and Sample</h4>
+<p>This website presents findings from two interconnected studies based on the <strong>Health Behaviour in School-aged Children (HBSC)</strong> study, an international collaborative survey conducted in partnership with the World Health Organization (WHO). The HBSC study uses a repeated cross-sectional design, collecting data every four years from nationally representative samples of 11-, 13-, and 15-year-old students.</p>
+<p>The first study draws on Swiss HBSC data from <strong>2002 to 2018</strong>, comprising <strong>30,122 adolescents</strong> (50.3% girls). The second study extends this to an <strong>international sample spanning 45 countries</strong> across the same survey period (2001/2–2017/18). In both studies, participants were recruited via a two-stage cluster sampling design — schools were randomly selected across regions, and entire classes were then chosen to participate. Data were collected through standardized, self-administered questionnaires completed during school hours.</p>
+<p>Both studies were conducted in accordance with strict ethical guidelines. Parental consent was obtained where required, and participation was voluntary.</p>
+
+<hr style='margin: 24px 0;'>
+
+<h4 style='margin-top:20px; margin-bottom:8px;'>Health Behaviours</h4>
+<p>Five health behaviour indicators were assessed and harmonized across survey waves to ensure comparability over time:</p>
+<ul style='margin-top:8px; padding-left:20px; line-height:1.8;'>
+  <li><strong>Physical inactivity</strong> — days per week with at least 60 minutes of physical activity (reverse-coded, higher = less active)</li>
+  <li><strong>Sleep problems</strong> — frequency of difficulty falling asleep over the past six months (reverse-coded, higher = more problems)</li>
+  <li><strong>Unhealthy diet</strong> — frequency of fruit, vegetable, sweets, and soft drink consumption combined into a composite score (higher = less healthy)</li>
+  <li><strong>Smoking</strong> — current tobacco use frequency, harmonized across measurement formats used before and after 2018</li>
+  <li><strong>Alcohol use</strong> — frequency of alcohol consumption, similarly harmonized across waves</li>
+</ul>
+
+<hr style='margin: 24px 0;'>
+
+<h4 style='margin-top:20px; margin-bottom:8px;'>Well-Being Outcomes</h4>
+<p>Three well-being outcomes were examined across both studies, with a fourth included in the international analysis:</p>
+<ul style='margin-top:8px; padding-left:20px; line-height:1.8;'>
+  <li><strong>Internalizing symptoms</strong> — frequency of feeling nervous, dizzy, low, and irritable (mean score; higher = more symptoms)</li>
+  <li><strong>Somatic symptoms</strong> — frequency of headaches, stomachaches, and backaches (mean score; higher = more frequent)</li>
+  <li><strong>Life satisfaction</strong> — rated on a 0–10 scale (Cantril Ladder; higher = greater satisfaction)</li>
+  <li><strong>Self-rated health</strong> <em>(international study only)</em> — perceived general health on a four-point scale (higher = better health)</li>
+</ul>
+
+<hr style='margin: 24px 0;'>
+
+<h4 style='margin-top:20px; margin-bottom:8px;'>Study Designs</h4>
+<p><strong>Study 1 — Latent Profile Analysis (Switzerland):</strong> Using the Swiss HBSC data, a latent profile analysis (LPA) was conducted to identify distinct subgroups of adolescents based on their co-occurring health behaviour patterns. Sociodemographic characteristics — age, gender, and family socioeconomic status (measured via the Family Affluence Scale) — were examined in relation to profile membership.</p>
+<p style='margin-top:16px;'><strong>Study 2 — Multilevel Analysis (International):</strong> Building on the profile structure identified in Study 1, the second study examined how health behaviour profiles relate to well-being outcomes across 45 countries. Multilevel modelling was used to account for the nested structure of the data (students within countries and survey waves). Two country-level contextual variables were included: the <strong>Human Development Index (HDI)</strong> and the <strong>Gini coefficient</strong> (income inequality), both treated as time-varying macro-level indicators.</p>
+
+<hr style='margin: 24px 0;'>
+
+<p><em>All continuous variables were z-standardized for the multilevel analyses. Further details on the HBSC study protocol and item documentation are available at <a href='http://www.hbsc.org' target='_blank'>www.hbsc.org</a>.</em></p>
+")
+                        )
                       )
              ),
              
@@ -2894,10 +3005,68 @@ server <- function(input, output, session) {
   # LPA Plot for comparison country
   output$lpa_plot_compare <- renderPlot({
     req(input$compare_countries, input$lpa_country_compare != "")
-    
+
     create_lpa_plot(input$lpa_country_compare, input$lpa_year)
   })
-  
+
+  # LPA Model Fit table
+  output$lpa_model_fit_table <- renderUI({
+    req(input$lpa_model_fit, input$lpa_country != "")
+
+    if (!is.null(input$lpa_year) && input$lpa_year != "ALL") {
+      path <- file.path("data", "LPA", input$lpa_country, input$lpa_year,
+                        paste0(input$lpa_country, "_", input$lpa_year, "_enum_summary.xlsx"))
+    } else {
+      path <- file.path("data", "LPA", input$lpa_country,
+                        paste0(input$lpa_country, "_enum_summary.xlsx"))
+    }
+
+    if (!file.exists(path)) {
+      return(tags$p(paste("No model fit file found for", input$lpa_country,
+                          if (!is.null(input$lpa_year) && input$lpa_year != "ALL") input$lpa_year else "")))
+    }
+
+    df <- read_excel(path)
+
+    # Rename first column to 'k' and strip to class number (e.g. Austria_C2 -> 2)
+    names(df)[1] <- "k"
+    df$k <- gsub("[^0-9]", "", as.character(df$k))
+
+    # Remove parentheses from ClassSizes_n_Percent
+    if ("ClassSizes_n_Percent" %in% names(df)) {
+      df$ClassSizes_n_Percent <- gsub("[()]", "", as.character(df$ClassSizes_n_Percent))
+    }
+
+    # Spanning header label
+    year_label <- if (!is.null(input$lpa_year) && input$lpa_year != "ALL") input$lpa_year else "Overall"
+    n_cols <- ncol(df)
+
+    # Build HTML table
+    tags$table(
+      style = "border-collapse: collapse; width: 100%; font-size: 0.9em;",
+      tags$thead(
+        tags$tr(
+          tags$th(colspan = n_cols,
+                  style = "text-align: center; background-color: #e8e8e8; font-weight: bold; border: 1px solid #ddd; padding: 6px;",
+                  year_label)
+        ),
+        tags$tr(
+          lapply(names(df), function(col)
+            tags$th(style = "border: 1px solid #ddd; padding: 6px; background-color: #f5f5f5;", col))
+        )
+      ),
+      tags$tbody(
+        lapply(seq_len(nrow(df)), function(i)
+          tags$tr(
+            style = if (i %% 2 == 0) "background-color: #fafafa;" else "",
+            lapply(df[i, ], function(cell)
+              tags$td(style = "border: 1px solid #ddd; padding: 6px;", as.character(cell)))
+          ))
+      )
+    )
+  })
+
+
   ### Regression analysis
   
   # Generate all regression plots when country or year changes

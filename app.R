@@ -2439,7 +2439,7 @@ ui <- fluidPage(
   <li><strong>Sleep problems</strong> — frequency of difficulty falling asleep over the past six months (reverse-coded, higher = more problems)</li>
   <li><strong>Unhealthy diet</strong> — frequency of fruit, vegetable, sweets, and soft drink consumption combined into a composite score (higher = less healthy)</li>
   <li><strong>Smoking</strong> — current tobacco use frequency, harmonized across measurement formats used before and after 2018</li>
-  <li><strong>Alcohol use</strong> — frequency of alcohol consumption, similarly harmonized across waves</li>
+  <li><strong>Alcohol consumption</strong> — frequency of alcohol consumption, similarly harmonized across waves</li>
 </ul>
 
 <hr style='margin: 24px 0;'>

@@ -281,10 +281,16 @@ generate_map <- function(variable, year) {
 hbsc_raw <- read.csv("data/hbsc_raw.csv")
 
 hbsc_mappings <- list(
-  # Health complaints (sleepprob, backache_rev, headache_rev, stomachache_rev, dizzy_rev, irritable_rev, nervous_rev, feellow_rev)
-  health_complaints_rev = c("1" = "Rarely or never", "2" = "About every month", 
-                            "3" = "About every week", "4" = "More than once a week", 
+  # Health complaints (backache_rev, headache_rev, stomachache_rev, dizzy_rev, irritable_rev, nervous_rev, feellow_rev)
+  # These use formula 6 - x on a 1-5 scale, giving values 1-5
+  health_complaints_rev = c("1" = "Rarely or never", "2" = "About every month",
+                            "3" = "About every week", "4" = "More than once a week",
                             "5" = "About every day"),
+
+  # Sleep problems: sleepprob = 5 - sleepdifficulty (1-5 scale), giving values 0-4
+  sleep_problems = c("0" = "Rarely or never", "1" = "About every month",
+                     "2" = "About every week", "3" = "More than once a week",
+                     "4" = "About every day"),
   
   # Life satisfaction (0-10 scale)
   likert_lifesat = c("0" = "0 (Worst)", "1" = "1", "2" = "2", "3" = "3", "4" = "4", 
@@ -302,14 +308,14 @@ hbsc_mappings <- list(
   
   likert_holidays = c("1" = "Not at all", "2" = "Once", "3" = "Twice", "4" = "More than twice"),
   
-  # Physical activity
-  likert_physinact = c("1" = "7 days", "2" = "6 days", "3" = "5 days", 
-                       "4" = "4 days", "5" = "3 days", "6" = "2 days", 
-                       "7" = "1 day", "8" = "0 days"),
-  # Unhealthy Diet
-  likert_undiet_r = c("1" = "Every day, more than once", "2" = "Once a day, every day",
-                      "3" = "5-6 days a week", "4" = "2-4 days a week", 
-                      "5" = "Once a week", "6" = "Less than once a week", "7" = "Never"),
+  # Physical activity: physinact = 7 - physact60 (0-7 scale), giving values 0-7
+  likert_physinact = c("0" = "7 days", "1" = "6 days", "2" = "5 days",
+                       "3" = "4 days", "4" = "3 days", "5" = "2 days",
+                       "6" = "1 day", "7" = "0 days"),
+  # Unhealthy Diet (reverse-coded): fruits3r/vegetables3r = 7 - x (1-7 scale), giving values 0-6
+  likert_undiet_r = c("0" = "Every day, more than once", "1" = "Once a day, every day",
+                      "2" = "5-6 days a week", "3" = "2-4 days a week",
+                      "4" = "Once a week", "5" = "Less than once a week", "6" = "Never"),
   likert_undiet = c("1" = "Never", "2" = "Less than once a week",
                     "3" = "Once a week", "4" = "2-4 days a week", 
                     "5" = "5-6 days a week", "6" = "Once a day, every day", 
@@ -330,16 +336,21 @@ hbsc_mappings <- list(
                        "5" = "10-19 days", "6" = "20-29 days", "7" = "30 days (or more)")
 )
 
-# Apply health complaints mappings (all use health_complaints_rev)
-health_complaint_vars <- c("backache_rev", "headache_rev", "stomachache_rev", 
-                           "dizzy_rev", "irritable_rev", "nervous_rev", "feellow_rev", "sleepprob")
+# Apply health complaints mappings (backache_rev etc. use 6-x formula → values 1-5)
+health_complaint_vars <- c("backache_rev", "headache_rev", "stomachache_rev",
+                           "dizzy_rev", "irritable_rev", "nervous_rev", "feellow_rev")
 
 for(var in health_complaint_vars) {
   new_var_name <- paste0(var, "_labeled")
-  hbsc_raw[[new_var_name]] <- factor(hbsc_raw[[var]], 
+  hbsc_raw[[new_var_name]] <- factor(hbsc_raw[[var]],
                                      levels = names(hbsc_mappings$health_complaints_rev),
                                      labels = hbsc_mappings$health_complaints_rev)
 }
+
+# Sleep problems uses a different formula (5 - sleepdifficulty → values 0-4)
+hbsc_raw$sleepprob_labeled <- factor(hbsc_raw$sleepprob,
+                                     levels = names(hbsc_mappings$sleep_problems),
+                                     labels = hbsc_mappings$sleep_problems)
 
 # Life satisfaction mapping
 hbsc_raw$lifesat_labeled <- factor(hbsc_raw$lifesat,

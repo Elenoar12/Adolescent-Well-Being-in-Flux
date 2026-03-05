@@ -3042,6 +3042,9 @@ server <- function(input, output, session) {
     # Rename first column to 'k' and strip to class number (e.g. Austria_C2 -> 2)
     names(df)[1] <- "k"
     df$k <- gsub("[^0-9]", "", as.character(df$k))
+    if (!is.null(input$lpa_year) && input$lpa_year != "ALL") {
+      df$k <- gsub(input$lpa_year, "", df$k, fixed = TRUE)
+    }
 
     # Remove parentheses from ClassSizes_n_Percent
     if ("ClassSizes_n_Percent" %in% names(df)) {

@@ -1835,11 +1835,11 @@ ui <- fluidPage(
                           <hr style='margin: 24px 0;'>
 
                           <h4 style='margin-top:20px; margin-bottom:8px;'>Associated Publications</h4>
-                          <p><a href='https://github.com/Elenoar12/Adolescent-Well-Being-in-Flux' target='_blank'>Github project repository</a></p>
+                          <p><a href='https://github.com/Elenoar12/Adolescent-Well-Being-in-Flux' target='_blank'>Github Project Repository</a></p>
 
                           <hr style='margin: 24px 0;'>
 
-                          <p>This research project was supported by a Seed Grant from the <a href='https://www.prc.uzh.ch/en/research/seedgrants.html' target='_blank'>UZH Population Research Center</a>.</p>
+                          <p>This research project was supported by a <a href='https://www.prc.uzh.ch/en/research/seedgrants.html' target='_blank'>Seed Grant</a> from the UZH Population Research Center.</p>
 
                           <hr style='margin: 24px 0;'>
                           ")

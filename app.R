@@ -11,7 +11,6 @@ library(reshape2)
 library(readxl)
 
 # Load data
-# data_path = r"(C:\Users\hanst\OneDrive - Universität Zürich UZH\Datenanalyse\hbsc_allrel.csv)"
 data_path = "data/hbsc_variables.csv"
 hbsc <- read.csv(data_path, header=TRUE)
 
@@ -384,7 +383,7 @@ hbsc_raw$physinact_labeled <- factor(hbsc_raw$physinact,
                                      levels = names(hbsc_mappings$likert_physinact),
                                      labels = hbsc_mappings$likert_physinact)
 
-# Dietary behavior mappings
+# Dietary behaviour mappings
 # fruits3r and vegetables3r use reverse coding
 hbsc_raw$fruits3r_labeled <- factor(hbsc_raw$fruits3r,
                                     levels = names(hbsc_mappings$likert_undiet_r),
@@ -773,8 +772,8 @@ create_lpa_plot <- function(input_country, input_year = NULL) {
     # Read the CSV file directly
     means_df_filtered <- read.csv(csv_filepath)
     
-    # Rename "undietary behavior" to "Unhealthy Diet" (corrected)
-    means_df_filtered$Variable <- gsub("undietary behavior", "Unhealthy Diet", means_df_filtered$Variable, ignore.case = TRUE)
+    # Rename "undietary behaviour" to "Unhealthy Diet" (corrected)
+    means_df_filtered$Variable <- gsub("undietary behaviour", "Unhealthy Diet", means_df_filtered$Variable, ignore.case = TRUE)
     
     # Rename "alcohol" to "Alcohol Consumption"
     means_df_filtered$Variable <- gsub("alcohol", "Alcohol Consumption", means_df_filtered$Variable, ignore.case = TRUE)
@@ -932,7 +931,7 @@ create_lpa_plot <- function(input_country, input_year = NULL) {
         title = paste0("Latent Profile Analysis ", input_country, 
                        ifelse(!is.null(input_year) && input_year != "ALL", paste0(" ", input_year), ""), 
                        ", ", class_num, " Profiles"),
-        x = "Health Behaviors",
+        x = "Health Behaviours",
         y = "Means",
         color = "Risk Profile",
         linetype = "Risk Profile",
@@ -980,7 +979,7 @@ create_lpa_plot <- function(input_country, input_year = NULL) {
         
         if (any(missing_var)) {
           missing_label <- pred_labels[missing_var][1]
-          error_msg <- paste("The risk behavior variable", missing_label, 
+          error_msg <- paste("The risk behaviour variable", missing_label, 
                              "was not collected in", input_country, input_year, ": Unable to calculate LPA profiles")
         }
       }
@@ -1174,7 +1173,7 @@ create_multinomial_plot <- function(input_country, input_year = NULL) {
         
         if (any(missing_var)) {
           missing_label <- pred_labels[which(missing_var)[1]]
-          error_msg <- paste("The risk behavior variable", missing_label, 
+          error_msg <- paste("The risk behaviour variable", missing_label, 
                              "was not collected in", input_country, input_year, 
                              ": Unable to calculate profiles and regressions")
           return(ggplot() + 
@@ -1418,7 +1417,7 @@ create_linear_plot_interaction <- function(input_country, input_year = NULL, out
         
         if (any(missing_var)) {
           missing_label <- pred_labels[which(missing_var)[1]]
-          error_msg <- paste("The risk behavior variable", missing_label, 
+          error_msg <- paste("The risk behaviour variable", missing_label, 
                              "was not collected in", input_country, input_year, 
                              ": Unable to calculate profiles and regressions")
           return(ggplot() + 
@@ -1639,7 +1638,7 @@ create_linear_plot_main <- function(input_country, input_year = NULL, outcome_va
         
         if (any(missing_var)) {
           missing_label <- pred_labels[which(missing_var)[1]]
-          error_msg <- paste("The risk behavior variable", missing_label, 
+          error_msg <- paste("The risk behaviour variable", missing_label, 
                              "was not collected in", input_country, input_year, 
                              ": Unable to calculate profiles and regressions")
           return(ggplot() + 
@@ -1818,47 +1817,58 @@ ui <- fluidPage(
              # Home Page
              tabPanel("Home",
                       fluidPage(
-                        h2("Welcome to the Adolescent Well-Being in Flux App"),
-                        
-                        p("This app provides insights into adolescent well-being through descriptive statistics and latent profile analysis (LPA)."),
-                        p("Use the navigation menu to explore the data."),
-                        br(),
-                        
+                        h2("Welcome to the Adolescent Well-Being in Flux Webpage"),
+                        div(style = "padding: 10px 20px;",
+                          HTML("
+                          <p>This website presents findings on the associations of adolescent health-risk behaviours and mental distress based on data from the <strong>Health Behaviour in School-Aged Children (HBSC)</strong> study (<a href='http://www.hbsc.org' target='_blank'>www.hbsc.org</a>).</p>
+                          <p>Use the navigation menu to explore the data and the <em>About</em> tab for more information on the methodology.</p>
+
+                          <hr style='margin: 24px 0;'>
+
+                          <h4 style='margin-top:20px; margin-bottom:8px;'>Study Team</h4>
+                          <ul style='margin-top:8px; padding-left:20px; line-height:1.8;'>
+                            <li>Clarissa Janousch (PI) &mdash; <a href='mailto:clarissa.janousch@ki.se'>clarissa.janousch@ki.se</a></li>
+                            <li>Laura Bechtiger (PI) &mdash; <a href='mailto:l.g.bechtiger@umcg.nl'>l.g.bechtiger@umcg.nl</a></li>
+                            <li>Hans Thalathara (project staff)</li>
+                          </ul>
+
+                          <hr style='margin: 24px 0;'>
+
+                          <h4 style='margin-top:20px; margin-bottom:8px;'>Associated Publications</h4>
+                          <p><a href='https://github.com/Elenoar12/Adolescent-Well-Being-in-Flux' target='_blank'>Github project repository</a></p>
+
+                          <hr style='margin: 24px 0;'>
+
+                          <p>This research project was supported by a Seed Grant from the <a href='https://www.prc.uzh.ch/en/research/seedgrants.html' target='_blank'>UZH Population Research Center</a>.</p>
+
+                          <hr style='margin: 24px 0;'>
+                          ")
+                        ),
+
                         fluidRow(
-                          column(width = 12,
+                          column(width = 12, style = "text-align: center;",
                                  tags$a(href = "https://www.prc.uzh.ch/en", target = "_blank",
                                         tags$img(src = "logo_PRC.svg", height = "80px", width = "240px",
                                                  style = "margin: 10px; cursor: pointer; transition: opacity 0.3s;",
                                                  onmouseover = "this.style.opacity=0.7",
                                                  onmouseout = "this.style.opacity=1")),
                                  tags$a(href = "https://www.uzh.ch/en", target = "_blank",
-                                        tags$img(src = "logo_UZH.png", height = "80px", 
+                                        tags$img(src = "logo_UZH.png", height = "80px",
                                             style = "margin: 10px; cursor: pointer; transition: opacity 0.3s;",
                                             onmouseover = "this.style.opacity=0.7",
                                             onmouseout = "this.style.opacity=1")),
                                  tags$a(href = "https://www.pukzh.ch", target = "_blank",
-                                        tags$img(src = "logo_PUK.png", height = "80px", 
+                                        tags$img(src = "logo_PUK.png", height = "80px",
                                             style = "margin: 10px; cursor: pointer; transition: opacity 0.3s;",
                                             onmouseover = "this.style.opacity=0.7",
                                             onmouseout = "this.style.opacity=1")),
                                  tags$a(href = "https://www.jacobscenter.uzh.ch/en", target = "_blank",
-                                        tags$img(src = "logo_JC.png", height = "80px", 
+                                        tags$img(src = "logo_JC.png", height = "80px",
                                             style = "margin: 10px; cursor: pointer; transition: opacity 0.3s;",
                                             onmouseover = "this.style.opacity=0.7",
                                             onmouseout = "this.style.opacity=1"))
-                          ),
-                        ),
-                        
-                        br(),
-                        p("We gratefully acknowledge the UZH Population Research Center for supporting this research through a Seed Grant."),
-                        p(
-                          "Health Behavior in School-aged Children (HBSC) is an international study carried out in collaboration with the World Health Organization, Regional Office for Europe (WHO/EURO). The International Coordinator of the HBSC study is Dr Joanna Inchley, University of Glasgow, Scotland. The Data Bank Manager is Professor Oddrun Samdal, University of Bergen in Norway. For details, see ",
-                          a("http://www.hbsc.org/", href = "http://www.hbsc.org/", target = "_blank"),
-                          "."
-                        ),
-                        p("In Switzerland, HBSC is coordinated by Dr. Marina Delgrande Jordan at Sucht Schweiz and financed by the Federal Department of Health and the Swiss cantons."),
-                        br(),
-                        
+                          )
+                        )
                       )
              ),
              
@@ -1970,12 +1980,12 @@ ui <- fluidPage(
                                
                                fluidPage(
                                  # Title with info icon
-                                 h3(HTML("Health Indicators Over Time 
+                                 h3(HTML("Health-Risk Behaviours Over Time 
                                  <span class='info-tooltip'>
                                  <span class='info-icon' title=''>ⓘ</span>
                                  <span class='tooltip-text' id='map-tooltip'>
-                                    This interactive map displays health behavior data from the HBSC study. 
-                                    Select different indicators to explore patterns across European countries 
+                                    This interactive map displays health-risk behaviour data from the HBSC study. 
+                                    Select different behaviours to explore patterns across European countries 
                                     and survey years. Click on countries for detailed information. 
                                     Countries are not supposed to be compared directly (z-Scores were calculated within country). 
                                     Use the survey year slider to see how health indicators have developed for each country.
@@ -1989,7 +1999,7 @@ ui <- fluidPage(
                                  fluidRow(
                                    column(12, align = "center",
                                           div(class = "radio-buttons",
-                                              radioButtons("map_variable", "Select Health Indicator:", 
+                                              radioButtons("map_variable", "Select Health-Risk Behaviour:", 
                                                            choices = c("Alcohol Consumption" = "alcohol",
                                                                        "Smoking" = "smoking",
                                                                        "Physical Inactivity" = "physinact",
@@ -2102,7 +2112,7 @@ ui <- fluidPage(
                                                           "Physical Aches" = "ache",
                                                           "Self-rated Health" = "health"
                                                         ),
-                                                        "Health Behavior" = list(
+                                                        "Health behaviour" = list(
                                                           "Alcohol Consumption" = "alcohol",
                                                           "Smoking" = "smoking",
                                                           "Physical Inactivity" = "physinact",
@@ -2436,51 +2446,54 @@ ui <- fluidPage(
                         h3("About This Study"),
                         div(style = "padding: 10px 20px;",
                         HTML("
-<h4 style='margin-top:20px; margin-bottom:8px;'>Data and Sample</h4>
-<p>This website presents findings from two interconnected studies based on the <strong>Health Behaviour in School-aged Children (HBSC)</strong> study, an international collaborative survey conducted in partnership with the World Health Organization (WHO). The HBSC study uses a repeated cross-sectional design, collecting data every four years from nationally representative samples of 11-, 13-, and 15-year-old students.</p>
-<p>The first study draws on Swiss HBSC data from <strong>2002 to 2018</strong>, comprising <strong>30,122 adolescents</strong> (50.3% girls). The second study extends this to an <strong>international sample spanning 45 countries</strong> across the same survey period (2001/2–2017/18). In both studies, participants were recruited via a two-stage cluster sampling design — schools were randomly selected across regions, and entire classes were then chosen to participate. Data were collected through standardized, self-administered questionnaires completed during school hours.</p>
-<p>Both studies were conducted in accordance with strict ethical guidelines. Parental consent was obtained where required, and participation was voluntary.</p>
-
-<hr style='margin: 24px 0;'>
-
-<h4 style='margin-top:20px; margin-bottom:8px;'>Health Behaviours</h4>
-<p>Five health behaviour indicators were assessed and harmonized across survey waves to ensure comparability over time:</p>
-<ul style='margin-top:8px; padding-left:20px; line-height:1.8;'>
-  <li><strong>Physical inactivity</strong> — days per week with at least 60 minutes of physical activity (reverse-coded, higher = less active)</li>
-  <li><strong>Sleep problems</strong> — frequency of difficulty falling asleep over the past six months (reverse-coded, higher = more problems)</li>
-  <li><strong>Unhealthy diet</strong> — frequency of fruit, vegetable, sweets, and soft drink consumption combined into a composite score (higher = less healthy)</li>
-  <li><strong>Smoking</strong> — current tobacco use frequency, harmonized across measurement formats used before and after 2018</li>
-  <li><strong>Alcohol consumption</strong> — frequency of alcohol consumption, similarly harmonized across waves</li>
-</ul>
-
-<hr style='margin: 24px 0;'>
-
-<h4 style='margin-top:20px; margin-bottom:8px;'>Well-Being Outcomes</h4>
-<p>Three well-being outcomes were examined across both studies, with a fourth included in the international analysis:</p>
-<ul style='margin-top:8px; padding-left:20px; line-height:1.8;'>
-  <li><strong>Internalizing symptoms</strong> — frequency of feeling nervous, dizzy, low, and irritable (mean score; higher = more symptoms)</li>
-  <li><strong>Somatic symptoms</strong> — frequency of headaches, stomachaches, and backaches (mean score; higher = more frequent)</li>
-  <li><strong>Life satisfaction</strong> — rated on a 0–10 scale (Cantril Ladder; higher = greater satisfaction)</li>
-  <li><strong>Self-rated health</strong> <em>(international study only)</em> — perceived general health on a four-point scale (higher = better health)</li>
-</ul>
-
-<hr style='margin: 24px 0;'>
-
-<h4 style='margin-top:20px; margin-bottom:8px;'>Study Designs</h4>
-<p><strong>Study 1 — Latent Profile Analysis (Switzerland):</strong> Using the Swiss HBSC data, a latent profile analysis (LPA) was conducted to identify distinct subgroups of adolescents based on their co-occurring health behaviour patterns. Sociodemographic characteristics — age, gender, and family socioeconomic status (measured via the Family Affluence Scale) — were examined in relation to profile membership.</p>
-<p style='margin-top:16px;'><strong>Study 2 — Multilevel Analysis (International):</strong> Building on the profile structure identified in Study 1, the second study examined how health behaviour profiles relate to well-being outcomes across 45 countries. Multilevel modelling was used to account for the nested structure of the data (students within countries and survey waves). Two country-level contextual variables were included: the <strong>Human Development Index (HDI)</strong> and the <strong>Gini coefficient</strong> (income inequality), both treated as time-varying macro-level indicators.</p>
-
-<hr style='margin: 24px 0;'>
-
-<p><em>All continuous variables were z-standardized for the multilevel analyses. Further details on the HBSC study protocol and item documentation are available at <a href='http://www.hbsc.org' target='_blank'>www.hbsc.org</a>.</em></p>
-")
+                        <h4 style='margin-top:20px; margin-bottom:8px;'><em>Data and Sample</em></h4>
+                        <p>This is a companion website for two interconnected studies based on the <strong>Health Behaviour in School-aged Children (HBSC)</strong> study. HBSC is an international survey carried out in collaboration with the World Health Organization, Regional Office for Europe (WHO/EURO). The International Coordinator of the HBSC study is Dr. Joanna Inchley, at the University of Glasgow, Scotland. The Data Bank Manager is Professor Oddrun Samdal, at the University of Bergen in Norway. For details, see <a href='http://www.hbsc.org/' target='_blank'>www.hbsc.org</a>. In Switzerland, HBSC is coordinated by Dr. Marina Delgrande Jordan at Sucht Schweiz and financed by the Federal Department of Health and the Swiss cantons. The HBSC study uses a repeated cross-sectional design, collecting data every four years from nationally representative samples of 11-, 13-, and 15-year-old students in more than 40 countries.</p>
+                        
+                        <p style='margin-top:16px;'>The first study (Bechtiger et al., 2026) draws on Swiss HBSC data from <strong>2001/02 to 2017/18</strong>, comprising <strong>30,122 adolescents</strong> (50.3% girls).</p>
+                        <p style='margin-top:16px;'>The second study (Janousch et al., in preparation) extends this to an <strong>international sample spanning 44 countries</strong> across the same survey period (N = 987557). In both studies, participants were recruited via a two-stage cluster sampling design — schools were randomly selected across regions, and entire classes were then chosen to participate (<a href='https://edoc.rki.de/handle/176904/6982' target='_blank'>Moor et al., 2020</a>). Data was collected through standardized, self-administered questionnaires completed during school hours.</p>
+                        
+                        <hr style='margin: 24px 0;'>
+                        
+                        <h4 style='margin-top:20px; margin-bottom:8px;'><em>Measures</em></h4>
+                        
+                        <h5 style='margin-top:20px; margin-bottom:8px;'>Health-Risk Behaviours</h5>
+                        <p>Five health behaviour indicators were assessed and harmonized across survey waves to ensure comparability over time:</p>
+                        <ul style='margin-top:8px; padding-left:20px; line-height:1.8;'>
+                          <li><strong>Physical inactivity</strong> — days per week with at least 60 minutes of physical activity (reverse-coded, higher = less active)</li>
+                          <li><strong>Sleep problems</strong> — frequency of difficulty falling asleep over the past six months (reverse-coded, higher = more sleep problems)</li>
+                          <li><strong>Unhealthy diet</strong> — frequency of fruit, vegetable, sweets, and soft drink consumption combined into a composite score (higher = less healthy diet)</li>
+                          <li><strong>Smoking</strong> — current tobacco use frequency, harmonized across measurement formats used before 2018 and in 2018 (higher = more frequent smoking)</li>
+                          <li><strong>Alcohol consumption</strong> — frequency of alcohol consumption, harmonized across measurement formats used before 2018 and in 2018 (higher = more frequent use of alcohol)</li>
+                        </ul>
+                        
+                        <h5 style='margin-top:20px; margin-bottom:8px;'>Mental Health Outcomes</h5>
+                        <p>Three mental health outcomes were examined across both studies, with a fourth included in the international analysis:</p>
+                        <ul style='margin-top:8px; padding-left:20px; line-height:1.8;'>
+                          <li><strong>Internalizing symptoms</strong> — frequency of feeling nervous, dizzy, low, and irritable (mean score; higher = more internalizing symptoms)</li>
+                          <li><strong>Somatic symptoms</strong> — frequency of headaches, stomach aches, and backaches (mean score; higher = more frequent somatic symptoms)</li>
+                          <li><strong>Life satisfaction</strong> — rated on a 0–10 scale (Cantril Ladder; higher = greater satisfaction)</li>
+                          <li><strong>Self-rated health</strong> <em>(international study only)</em> — perceived general health on a four-point Likert scale (higher = better health)</li>
+                        </ul>
+                        
+                        <p style='margin-top:16px;'>All continuous variables were z-standardized for the multilevel analyses. Further details on the HBSC study protocol and item documentation are available at <a href='http://www.hbsc.org' target='_blank'>www.hbsc.org</a>.</p>
+                        
+                        <hr style='margin: 24px 0;'>
+                        
+                        <h4 style='margin-top:20px; margin-bottom:8px;'><em>Data Analytic Strategy</em></h4>
+                        <p style='margin-top:16px;'>Using the Swiss HBSC data, a latent profile analysis (LPA) was conducted to identify distinct subgroups of adolescents based on their co-occurring health behaviour patterns. Sociodemographic characteristics — age, gender, and family socioeconomic status (measured via the <a href='https://doi.org/10.1016/j.ssmph.2023.101599' target='_blank'>Family Affluence Scale</a>) — were examined as predictors of profile membership and mental health variables as outcomes of profile membership.</p>
+                        
+                        <p style='margin-top:16px;'>We extended the LPAs to all HBSC countries and examined country-level differences in how health behaviour profiles relate to well-being outcomes across 44 countries. Multilevel models were conducted to account for the nested structure of the data (students within countries and survey waves). Furthermore, two country-level contextual variables were included: the Human Development Index (HDI; national development) and the Gini coefficient (national income inequality), both treated as time-varying macro-level indicators.</p>
+                        
+                        <br>
+                        <p style='margin-top:16px;'> For all analyses, we used Mplus (version 8.10) and R (version 4.4.2). Please refer to the two publications for more information regarding statistical analyses.</p>
+                        ")
                         )
                       )
              ),
              
              # Add footer at the end
              div(class = "footer", 
-                 "© 2025 Universität Zürich. All rights reserved.")
+                 "© 2026 Universität Zürich. All rights reserved.")
   )
 )  
 
@@ -2776,7 +2789,7 @@ server <- function(input, output, session) {
           "Physical Aches" = "ache",
           "Self-rated Health" = "health"
         ),
-        "Health Behavior" = list(
+        "Health Behaviour" = list(
           "Alcohol Consumption" = "alcohol",
           "Smoking" = "smoking",
           "Physical Inactivity" = "physinact",
@@ -2820,7 +2833,7 @@ server <- function(input, output, session) {
       
       "alcohol" = "<strong>Alcohol Consumption</strong> assesses current drinking frequency and patterns. This includes general alcohol use frequency and, for recent surveys, number of drinking days in the past month.",
       
-      "smoking" = "<strong>Smoking Behavior</strong> measures current tobacco use frequency and patterns. This includes general smoking frequency and, for recent surveys, number of smoking days in the past month."
+      "smoking" = "<strong>Smoking Behaviour</strong> measures current tobacco use frequency and patterns. This includes general smoking frequency and, for recent surveys, number of smoking days in the past month."
     )
     
     # Return the definition for the selected variable

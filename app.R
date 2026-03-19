@@ -1848,22 +1848,22 @@ ui <- fluidPage(
                         fluidRow(
                           column(width = 12, style = "text-align: center;",
                                  tags$a(href = "https://www.prc.uzh.ch/en", target = "_blank",
-                                        tags$img(src = "logo_PRC.svg", height = "80px", width = "240px",
+                                        tags$img(src = "logo_PRC.svg", height = "40px", width = "120px",
                                                  style = "margin: 10px; cursor: pointer; transition: opacity 0.3s;",
                                                  onmouseover = "this.style.opacity=0.7",
                                                  onmouseout = "this.style.opacity=1")),
                                  tags$a(href = "https://www.uzh.ch/en", target = "_blank",
-                                        tags$img(src = "logo_UZH.png", height = "80px",
+                                        tags$img(src = "logo_UZH.png", height = "40px",
                                             style = "margin: 10px; cursor: pointer; transition: opacity 0.3s;",
                                             onmouseover = "this.style.opacity=0.7",
                                             onmouseout = "this.style.opacity=1")),
                                  tags$a(href = "https://www.pukzh.ch", target = "_blank",
-                                        tags$img(src = "logo_PUK.png", height = "80px",
+                                        tags$img(src = "logo_PUK.png", height = "40px",
                                             style = "margin: 10px; cursor: pointer; transition: opacity 0.3s;",
                                             onmouseover = "this.style.opacity=0.7",
                                             onmouseout = "this.style.opacity=1")),
                                  tags$a(href = "https://www.jacobscenter.uzh.ch/en", target = "_blank",
-                                        tags$img(src = "logo_JC.png", height = "80px",
+                                        tags$img(src = "logo_JC.png", height = "40px",
                                             style = "margin: 10px; cursor: pointer; transition: opacity 0.3s;",
                                             onmouseover = "this.style.opacity=0.7",
                                             onmouseout = "this.style.opacity=1"))
@@ -2447,7 +2447,7 @@ ui <- fluidPage(
                         div(style = "padding: 10px 20px;",
                         HTML("
                         <h4 style='margin-top:20px; margin-bottom:8px;'><em>Data and Sample</em></h4>
-                        <p>This is a companion website for two interconnected studies based on the <strong>Health Behaviour in School-aged Children (HBSC)</strong> study. HBSC is an international survey carried out in collaboration with the World Health Organization, Regional Office for Europe (WHO/EURO). The International Coordinator of the HBSC study is Dr. Joanna Inchley, at the University of Glasgow, Scotland. The Data Bank Manager is Professor Oddrun Samdal, at the University of Bergen in Norway. For details, see <a href='http://www.hbsc.org/' target='_blank'>www.hbsc.org</a>. In Switzerland, HBSC is coordinated by Dr. Marina Delgrande Jordan at Sucht Schweiz and financed by the Federal Department of Health and the Swiss cantons. The HBSC study uses a repeated cross-sectional design, collecting data every four years from nationally representative samples of 11-, 13-, and 15-year-old students in more than 40 countries.</p>
+                        <p>This is a companion website for two interconnected studies based on the Health Behaviour in School-aged Children (HBSC) study, an international collaborative survey conducted in partnership with the World Health Organization (WHO). The HBSC study uses a repeated cross-sectional design, collecting data every four years from nationally representative samples of 11-, 13-, and 15-year-old students in more than 40 countries.</p>
                         
                         <p style='margin-top:16px;'>The first study (Bechtiger et al., 2026) draws on Swiss HBSC data from <strong>2001/02 to 2017/18</strong>, comprising <strong>30,122 adolescents</strong> (50.3% girls).</p>
                         <p style='margin-top:16px;'>The second study (Janousch et al., in preparation) extends this to an <strong>international sample spanning 44 countries</strong> across the same survey period (N = 987557). In both studies, participants were recruited via a two-stage cluster sampling design — schools were randomly selected across regions, and entire classes were then chosen to participate (<a href='https://edoc.rki.de/handle/176904/6982' target='_blank'>Moor et al., 2020</a>). Data was collected through standardized, self-administered questionnaires completed during school hours.</p>
@@ -2484,8 +2484,14 @@ ui <- fluidPage(
                         
                         <p style='margin-top:16px;'>We extended the LPAs to all HBSC countries and examined country-level differences in how health behaviour profiles relate to well-being outcomes across 44 countries. Multilevel models were conducted to account for the nested structure of the data (students within countries and survey waves). Furthermore, two country-level contextual variables were included: the Human Development Index (HDI; national development) and the Gini coefficient (national income inequality), both treated as time-varying macro-level indicators.</p>
                         
-                        <br>
                         <p style='margin-top:16px;'> For all analyses, we used Mplus (version 8.10) and R (version 4.4.2). Please refer to the two publications for more information regarding statistical analyses.</p>
+                        
+                        <hr style='margin: 24px 0;'>
+                        
+                        <h4 style='margin-top:20px; margin-bottom:8px;'><em>Acknowledgements</em></h4>  
+                        <p style='margin-top:16px;'>Health Behaviour in School-aged Children (HBSC) is an international study carried out in collaboration with the World Health Organization, Regional Office for Europe (WHO/EURO). The International Coordinator of the HBSC study is Dr. Joanna Inchley at the University of Glasgow, Scotland. The Data Bank Manager is Professor Oddrun Samdal at the University of Bergen, Norway. For details, see <a href='http://www.hbsc.org/' target='_blank'>www.hbsc.org</a>. In Switzerland, HBSC is coordinated by Dr. Marina Delgrande Jordan at Sucht Schweiz and financed by the Federal Department of Health and the Swiss cantons. We thank the schoolchildren, parents, and teachers who participated for their invaluable contributions.</p>
+                        <p style='margin-top:16px;'>The views expressed in this website and the publications are those of the authors and do not necessarily represent the positions of the World Health Organization.</p>
+                        <p style='margin-top:16px;'>Finally, we thank the <a href='https://www.prc.uzh.ch/en/research/seedgrants.html' target='_blank'>Population Research Center</a> at the University of Zurich for funding this project.</p>
                         ")
                         )
                       )

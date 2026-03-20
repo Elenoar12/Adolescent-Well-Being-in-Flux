@@ -1866,7 +1866,17 @@ ui <- fluidPage(
                                         tags$img(src = "logo_JC.png", height = "40px",
                                             style = "margin: 10px; cursor: pointer; transition: opacity 0.3s;",
                                             onmouseover = "this.style.opacity=0.7",
-                                            onmouseout = "this.style.opacity=1"))
+                                            onmouseout = "this.style.opacity=1")),
+                                 tags$a(href = "https://ki.se/en", target = "_blank",
+                                        tags$img(src = "logo_KI.png", height = "40px",
+                                                 style = "margin: 10px; cursor: pointer; transition: opacity 0.3s;",
+                                                 onmouseover = "this.style.opacity=0.7",
+                                                 onmouseout = "this.style.opacity=1")),
+                                 tags$a(href = "https://umcgresearch.org/", target = "_blank",
+                                        tags$img(src = "logo_UMCG.png", height = "40px",
+                                                 style = "margin: 10px; cursor: pointer; transition: opacity 0.3s;",
+                                                 onmouseover = "this.style.opacity=0.7",
+                                                 onmouseout = "this.style.opacity=1"))
                           )
                         )
                       )

@@ -773,7 +773,7 @@ create_lpa_plot <- function(input_country, input_year = NULL) {
     means_df_filtered <- read.csv(csv_filepath)
     
     # Rename "undietary behaviour" to "Unhealthy Diet" (corrected)
-    means_df_filtered$Variable <- gsub("undietary behaviour", "Unhealthy Diet", means_df_filtered$Variable, ignore.case = TRUE)
+    means_df_filtered$Variable <- gsub("undietary behavio(u)?r", "Unhealthy Diet", means_df_filtered$Variable, ignore.case = TRUE)
     
     # Rename "alcohol" to "Alcohol Consumption"
     means_df_filtered$Variable <- gsub("alcohol", "Alcohol Consumption", means_df_filtered$Variable, ignore.case = TRUE)

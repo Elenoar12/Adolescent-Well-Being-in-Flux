@@ -1,5 +1,4 @@
-### Plot Functions — Standalone Static Script
-# Extracted from app.R. Contains the final versions of all visualization functions.
+### Plot Functions
 # Run from the project root (the folder containing app.R and data/).
 #
 # Required files:
@@ -11,8 +10,6 @@
 #
 # Note: generate_map() produces an interactive Leaflet map.
 #       Use mapshot() from the mapview package to save it as a static image.
-
-# library(shiny)  # not needed for standalone static script
 
 # Set working directory to project root (folder containing app.R and data/)
 setwd(dirname(dirname(rstudioapi::getActiveDocumentContext()$path)))
@@ -791,7 +788,7 @@ create_lpa_plot <- function(input_country, input_year = NULL) {
     means_df_filtered <- read.csv(csv_filepath)
     
     # Rename "undietary behaviour" to "Unhealthy Diet" (corrected)
-    means_df_filtered$Variable <- gsub("undietary behaviour", "Unhealthy Diet", means_df_filtered$Variable, ignore.case = TRUE)
+    means_df_filtered$Variable <- gsub("undietary behavio(u)?r", "Unhealthy Diet", means_df_filtered$Variable, ignore.case = TRUE)
     
     # Rename "alcohol" to "Alcohol Consumption"
     means_df_filtered$Variable <- gsub("alcohol", "Alcohol Consumption", means_df_filtered$Variable, ignore.case = TRUE)

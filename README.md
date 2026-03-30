@@ -1,6 +1,6 @@
 # Adolescent Well-Being in Flux
 
-This repository contains the analysis code and interactive web application accompanying the study by Bechtiger & Janousch (2025), examining trends in adolescent health-risk behaviours and mental distress across 45 countries using data from the Health Behaviour in School-Aged Children (HBSC) study (2002–2018).
+This repository contains the analysis code and interactive web application accompanying the study by Bechtiger & Janousch (2025), examining trends in adolescent health-risk behaviours and mental distress across 44 countries using data from the Health Behaviour in School-Aged Children (HBSC) study (2002–2018).
 
 ## Scripts
 

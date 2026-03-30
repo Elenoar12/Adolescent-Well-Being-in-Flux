@@ -14,7 +14,7 @@ library(reshape2)
 library(glue)
 library(tibble)
 
-data_path = file.path(Sys.getenv("USERPROFILE"), "OneDrive - Universität Zürich UZH", "Datenanalyse", "hbsc_allrel.csv")
+data_path = "data/hbsc_allrel.csv"
 hbsc <- read.csv(data_path, header=TRUE)
 
 # Select variables beforehand
@@ -116,7 +116,7 @@ p1
 
 library("fmsb")
 
-cprob <- file.path(Sys.getenv("USERPROFILE"), "OneDrive - Universität Zürich UZH", "Datenanalyse", "Switzerland", "c_prob_Switzerland_C4.csv")
+cprob <- "data/LPA/Switzerland/c_prob_Switzerland_C4.csv"
 
 create_radarchart <- function(cprob, color = "red", 
                                         vlabels = colnames(data), vlcex = 1,
@@ -515,7 +515,7 @@ create_sensitivity_lpa_facets <- function(hbsc_def, hbsc_labels, country) {
   class_num_numeric <- as.numeric(class_num)
   
   # Path to country-level cprob file
-  cprob_path <- file.path("LPA ID", country, paste0("c_prob_", country, "_", class_solution, ".csv"))
+  cprob_path <- file.path("data/LPA", country, paste0("c_prob_", country, "_", class_solution, ".csv"))
   
   if (!file.exists(cprob_path)) {
     stop(paste("cprob file not found:", cprob_path))
@@ -797,11 +797,11 @@ create_sensitivity_lpa_facets <- function(hbsc_def, hbsc_labels, country) {
 }
 
 # Read data
-data_path <- "hbsc_variables.csv"
+data_path <- "data/hbsc_variables.csv"
 hbsc_def <- read.csv(data_path, header = TRUE)
 hbsc_def <- tibble::rowid_to_column(hbsc_def, "ID")
 
-hbsc_labels <- read_excel("hbsc_labels.xlsx")
+hbsc_labels <- read_excel("data/hbsc_labels.xlsx")
 
 plot <- create_sensitivity_lpa_facets(hbsc_def, hbsc_labels, "Switzerland")
 
@@ -809,7 +809,7 @@ print(plot)
 
 ### Trend plots split for gender / age cat
 
-data_path = file.path(Sys.getenv("USERPROFILE"), "OneDrive - Universität Zürich UZH", "Datenanalyse", "hbsc_variables.csv")
+data_path = "data/hbsc_variables.csv"
 hbsc <- read.csv(data_path, header=TRUE)
 hbsc_CH <- hbsc %>% filter(countryname == 'Switzerland')
 

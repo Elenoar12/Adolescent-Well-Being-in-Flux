@@ -11,10 +11,8 @@ library(readxl)
 library(glue)
 library(tibble)
 
-setwd(file.path(Sys.getenv("USERPROFILE"), "OneDrive - Universität Zürich UZH", "Datenanalyse"))
-
 # Load data
-hbsc_def <- read.csv("hbsc_variables.csv", header = TRUE)
+hbsc_def <- read.csv("data/hbsc_variables.csv", header = TRUE)
 hbsc_def <- tibble::rowid_to_column(hbsc_def, "ID")
 
 # Removing Turkey (substance use not surveyed) and Kazakhstan (only C1 solution)
@@ -22,7 +20,7 @@ hbsc_def <- hbsc_def %>%
   filter(!countryname %in% c("Turkey", "Kazakhstan"))
 
 # Load country labels and class solutions
-hbsc_labels <- read_excel("hbsc_labels.xlsx")
+hbsc_labels <- read_excel("data/hbsc_labels.xlsx")
 
 # Define outcome and SES variables
 outcome <- c("health", "lifesat", "feeling", "ache")
@@ -275,7 +273,7 @@ run_refcat_regressions <- function(df, profiles, ses_vars, outcome_vars, save_di
 # ============================================================
 
 country_names  <- unique(hbsc_def$countryname)
-regression_dir <- "Regression"
+regression_dir <- "data/Regression"
 if (!dir.exists(regression_dir)) dir.create(regression_dir)
 
 for (country in country_names) {
@@ -286,7 +284,7 @@ for (country in country_names) {
   class_solution <- hbsc_labels %>% filter(Country == country) %>% pull(ClassSolution)
 
   # Country-level (all years pooled)
-  cprob_path <- file.path("LPA ID", country, glue("c_prob_{country}_{class_solution}.csv"))
+  cprob_path <- file.path("data/LPA", country, glue("c_prob_{country}_{class_solution}.csv"))
   if (file.exists(cprob_path)) {
     tryCatch({
       profiles <- read.csv(cprob_path, header = TRUE)
@@ -308,7 +306,7 @@ for (country in country_names) {
     year_regression_dir <- file.path(country_regression_dir, glue("{year}"))
     if (!dir.exists(year_regression_dir)) dir.create(year_regression_dir)
 
-    cprob_path <- file.path("LPA ID", country, glue("{year}"), glue("c_prob_{country}_{year}_{class_solution}.csv"))
+    cprob_path <- file.path("data/LPA", country, glue("{year}"), glue("c_prob_{country}_{year}_{class_solution}.csv"))
     if (file.exists(cprob_path)) {
       tryCatch({
         profiles <- read.csv(cprob_path, header = TRUE)
@@ -330,7 +328,7 @@ for (country in country_names) {
 # ============================================================
 
 country_names  <- "Switzerland"   # change to unique(hbsc_def$countryname) for all countries
-regression_dir <- "Sensitivity Analysis"
+regression_dir <- "data/Sensitivity Analysis"
 if (!dir.exists(regression_dir)) dir.create(regression_dir)
 
 for (country in country_names) {
@@ -339,7 +337,7 @@ for (country in country_names) {
   if (!dir.exists(country_regression_dir)) dir.create(country_regression_dir)
 
   class_solution <- hbsc_labels %>% filter(Country == country) %>% pull(ClassSolution)
-  cprob_path     <- file.path("LPA ID", country, glue("c_prob_{country}_{class_solution}.csv"))
+  cprob_path     <- file.path("data/LPA", country, glue("c_prob_{country}_{class_solution}.csv"))
 
   for (year in unique(hbsc_def$surveyyear[hbsc_def$countryname == country])) {
     year_regression_dir <- file.path(country_regression_dir, glue("{year}"))
@@ -364,7 +362,7 @@ for (country in country_names) {
 # ============================================================
 
 country_names  <- unique(hbsc_def$countryname)
-regression_dir <- "Regression (ref_profile)"
+regression_dir <- "data/Regression (ref_profile)"
 if (!dir.exists(regression_dir)) dir.create(regression_dir)
 
 for (country in country_names) {
@@ -375,7 +373,7 @@ for (country in country_names) {
   class_solution <- hbsc_labels %>% filter(Country == country) %>% pull(ClassSolution)
 
   # Country-level
-  cprob_path <- file.path("LPA ID", country, glue("c_prob_{country}_{class_solution}.csv"))
+  cprob_path <- file.path("data/LPA", country, glue("c_prob_{country}_{class_solution}.csv"))
   if (file.exists(cprob_path)) {
     profiles   <- read.csv(cprob_path, header = TRUE)$C
     df_country <- hbsc_def[hbsc_def$countryname == country, ] %>%
@@ -388,7 +386,7 @@ for (country in country_names) {
     year_regression_dir <- file.path(country_regression_dir, glue("{year}"))
     if (!dir.exists(year_regression_dir)) dir.create(year_regression_dir)
 
-    cprob_path <- file.path("LPA ID", country, glue("{year}"), glue("c_prob_{country}_{year}_{class_solution}.csv"))
+    cprob_path <- file.path("data/LPA", country, glue("{year}"), glue("c_prob_{country}_{year}_{class_solution}.csv"))
     if (file.exists(cprob_path)) {
       profiles <- read.csv(cprob_path, header = TRUE)$C
       df_year  <- hbsc_def[hbsc_def$countryname == country & hbsc_def$surveyyear == year, ] %>%
@@ -403,7 +401,7 @@ for (country in country_names) {
 # ============================================================
 
 country_names  <- "Switzerland"   # change to unique(hbsc_def$countryname) for all countries
-regression_dir <- "Sensitivity Analysis (ref_profile)"
+regression_dir <- "data/Sensitivity Analysis (ref_profile)"
 if (!dir.exists(regression_dir)) dir.create(regression_dir)
 
 for (country in country_names) {
@@ -412,7 +410,7 @@ for (country in country_names) {
   if (!dir.exists(country_regression_dir)) dir.create(country_regression_dir)
 
   class_solution <- hbsc_labels %>% filter(Country == country) %>% pull(ClassSolution)
-  cprob_path     <- file.path("LPA ID", country, glue("c_prob_{country}_{class_solution}.csv"))
+  cprob_path     <- file.path("data/LPA", country, glue("c_prob_{country}_{class_solution}.csv"))
 
   for (year in unique(hbsc_def$surveyyear[hbsc_def$countryname == country])) {
     year_regression_dir <- file.path(country_regression_dir, glue("{year}"))

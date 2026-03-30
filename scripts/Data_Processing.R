@@ -9,18 +9,18 @@ library(corrplot)
 library(glue)
 library(readxl)
 
-# setwd(r"(U:\Datenanalyse\001_HBSC Daten)")
-setwd(file.path(Sys.getenv("USERPROFILE"), "OneDrive - Universität Zürich UZH", "Datenanalyse"))
+### Read in data
 
-### read in data
-
+# NOTE: The raw HBSC data files (.sav) are not included in this repository.
+# Access to the data must be requested from the HBSC Data Management Centre.
+# Once obtained, place the files in the working directory and update the paths below.
 hbsc01 <- read_sav("HBSC2001OAed1.0_F4.sav")
 hbsc06 <- read_sav("HBSC2006OAed1.0_F1.sav")
 hbsc10 <- read_sav("HBSC2010OAed1.0_F4.sav")
 hbsc14 <- read_sav("HBSC2014OAed1.1_F1.sav")
 hbsc18 <- read_sav("HBSC2018OAed1.1.sav")
 
-### renames
+### Rename
 hbsc10 <- hbsc10 %>%
   rename(mbmi = MBMI ) 
 
@@ -46,7 +46,7 @@ hbsc18 <- hbsc18 %>%
          sleepdifficulty=sleepdificulty,
          sampleweights=weight)  
 
-### merge
+### Merge
 overlapping_columns0106 <- intersect(names(hbsc01), names(hbsc06))
 hbsc0106 <- full_join(hbsc01, hbsc06, by=overlapping_columns0106)
 
@@ -318,46 +318,44 @@ hbsc_raw <- hbsc_allrel %>%
          smoking_rev, smok30d_2_rs
          )
 
-write.csv(hbsc_raw, file.path(Sys.getenv("USERPROFILE"), "OneDrive - Universität Zürich UZH", "Datenanalyse", "hbsc_raw.csv"))
+write.csv(hbsc_raw, "data/hbsc_raw.csv")
 
 ##### Definitive data file with only relevant HBs and aggregated variables
 
-hbsc_def <- hbsc_allrel %>%
-  select(surveyyear,countryno,countryname,age,
-         agecat,
-         bodyheight,
-         bodyweight,
-         countryborn,
-         countrybornfa,
-         countrybornmo,
-         sex,
-         health,
-         toothbr,
-         studaccept,
-         studhelpful,
-         studtogether,
-         talkfather,
-         talkmother,
-         thinkbody,
-         talkstepfa,
-         talkstepmo,
-         agesex,
-         mbmi,
-         welloff,
-         grade,
-         physinact, sleepprob, riskysex, undiet, smoking2, alc2, lifesat, feeling, ache, fas)
-
-hbsc_def <- hbsc_def %>%
-  rename(smoking = smoking2,
-         alcohol = alc2)
-
-hbsc_allrelCH <- subset(hbsc_def, countryno == 756000)
-
-write_csv(hbsc_def, file.path(Sys.getenv("USERPROFILE"), "OneDrive - Universität Zürich UZH", "Datenanalyse", "hbsc_allrel.csv"))
-write_csv(hbsc_def, "U:/Datenanalyse/001_HBSC Daten/Processed_Data/hbsc_allrel.csv")
-
-write_csv(hbsc_allrelCH, "U:/Datenanalyse/001_HBSC Daten/Processed_Data/hbsc_allrelCH.csv")
-write_csv(hbsc_allrelCH, file.path(Sys.getenv("USERPROFILE"), "OneDrive - Universität Zürich UZH", "Datenanalyse", "hbsc_allrelCH.csv"))
+# hbsc_def <- hbsc_allrel %>%
+#   select(surveyyear,countryno,countryname,age,
+#          agecat,
+#          bodyheight,
+#          bodyweight,
+#          countryborn,
+#          countrybornfa,
+#          countrybornmo,
+#          sex,
+#          health,
+#          toothbr,
+#          studaccept,
+#          studhelpful,
+#          studtogether,
+#          talkfather,
+#          talkmother,
+#          thinkbody,
+#          talkstepfa,
+#          talkstepmo,
+#          agesex,
+#          mbmi,
+#          welloff,
+#          grade,
+#          physinact, sleepprob, riskysex, undiet, smoking2, alc2, lifesat, feeling, ache, fas)
+# 
+# hbsc_def <- hbsc_def %>%
+#   rename(smoking = smoking2,
+#          alcohol = alc2)
+# 
+# hbsc_allrelCH <- subset(hbsc_def, countryno == 756000)
+# 
+# write_csv(hbsc_def, "data/hbsc_allrel.csv")
+# 
+# write_csv(hbsc_allrelCH, "data/hbsc_allrelCH.csv")
 
 ### Streamlined data frame for webapp
 
@@ -379,7 +377,7 @@ hbsc_def <- hbsc_allrel %>%
          ache,
          fas)
 
-write_csv(hbsc_def, file.path(Sys.getenv("USERPROFILE"), "OneDrive - Universität Zürich UZH", "Datenanalyse", "hbsc_variables.csv"))
+write_csv(hbsc_def, "data/hbsc_variables.csv")
 
 
 ### Replacement for .out file processing and package MplusAutomation in webapp
@@ -514,7 +512,7 @@ batch_process_mplus_files <- function(base_lpa_path, hbsc_labels) {
 }
 
 # Set your base LPA directory path
-base_lpa_path <- file.path(Sys.getenv("USERPROFILE"), "OneDrive - Universität Zürich UZH", "Datenanalyse", "LPA ID")
+base_lpa_path <- "data/LPA"
 
 # Run the batch processing with hbsc_labels
 batch_process_mplus_files(base_lpa_path, hbsc_labels)
@@ -524,7 +522,7 @@ batch_process_mplus_files(base_lpa_path, hbsc_labels)
 library(readxl)
 library(openxlsx)
 
-base_enum_path <- file.path(Sys.getenv("USERPROFILE"), "OneDrive - Universität Zürich UZH", "Datenanalyse", "LPA ID")
+base_enum_path <- "data/LPA"
 
 # Initialize empty list to store all dataframes
 class_df <- list()
@@ -570,7 +568,7 @@ for (country in unique(hbsc_def$countryname)) {
 # Combine all dataframes
 class_selection <- bind_rows(class_df)
 
-write.xlsx(class_selection, file.path(Sys.getenv("USERPROFILE"), "OneDrive - Universität Zürich UZH", "Datenanalyse", "class_selection.xlsx"))
+write.xlsx(class_selection, "data/class_selection.xlsx")
 
 
 ### Profile distribution consistency check
@@ -578,7 +576,7 @@ write.xlsx(class_selection, file.path(Sys.getenv("USERPROFILE"), "OneDrive - Uni
 check_hbsc_profile_consistency <- function() {
   
   # Load the data
-  data_path <- "hbsc_variables.csv"
+  data_path <- "data/hbsc_variables.csv"
   hbsc_def <- read.csv(data_path, header = TRUE)
   
   # Filter for Switzerland
@@ -803,7 +801,7 @@ library(dplyr)
 library(tidyr)
 
 # First, get the formatted titles
-file_path <- r"(C:\Users\hanst\Downloads\class_selection.xlsx)"
+file_path <- "data/class_selection.xlsx"
 cells <- xlsx_cells(file_path, sheets = "Overview")
 title_cells <- cells[cells$col == 1 & cells$row > 1 & !is.na(cells$character), ]
 formatted_cells <- title_cells[title_cells$local_format_id > 1, ]
@@ -835,19 +833,13 @@ file_path_from_title <- function(title) {
   
   # Create file path
   if (year != "") {
-    file_path <- file.path(Sys.getenv("USERPROFILE"), 
-                           "OneDrive - Universität Zürich UZH", 
-                           "Datenanalyse", 
-                           "LPA ID", 
-                           country, 
-                           year, 
+    file_path <- file.path("data/LPA",
+                           country,
+                           year,
                            paste0(tolower(country), "_", year, "_", tolower(class_num), ".out"))
   } else {
-    file_path <- file.path(Sys.getenv("USERPROFILE"), 
-                           "OneDrive - Universität Zürich UZH", 
-                           "Datenanalyse", 
-                           "LPA ID", 
-                           country, 
+    file_path <- file.path("data/LPA",
+                           country,
                            paste0(tolower(country), "_", tolower(class_num), ".out"))
   }
   
@@ -967,10 +959,7 @@ if (length(all_results) > 0) {
   }
   
   # Save to CSV
-  output_file <- file.path(Sys.getenv("USERPROFILE"), 
-                           "OneDrive - Universität Zürich UZH",
-                           "Datenanalyse",
-                           "AI_Profile_VarMeans_Compilation.csv")
+  output_file <- "data/AI_Profile_VarMeans_Compilation.csv"
   
   write.csv(wide_df, output_file, row.names = FALSE)
   
@@ -996,11 +985,11 @@ cat("Failed to process:", length(formatted_titles) - processed_count, "\n")
 
 library(readxl)
 
-data_path = file.path(Sys.getenv("USERPROFILE"), "OneDrive - Universität Zürich UZH", "Datenanalyse", "hbsc_labels.xlsx")
+data_path = "data/hbsc_labels.xlsx"
 hbsc_labels <- read_excel(data_path)
 
 class_solution <- hbsc_labels$ClassSolution
-hbsc_variables <- read.csv("C:/Users/hanst/OneDrive - Universität Zürich UZH/Datenanalyse/hbsc_variables.csv")
+hbsc_variables <- read.csv("data/hbsc_variables.csv")
 hbsc_variables <- tibble::rowid_to_column(hbsc_variables, "ID")
 
 # Initialize empty list to store data frames
@@ -1038,12 +1027,9 @@ for (current_country in unique_countries) {
     
     # Construct filepath
     filepath <- file.path(
-      Sys.getenv("USERPROFILE"), 
-      "OneDrive - Universität Zürich UZH", 
-      "Datenanalyse",
-      "LPA ID",
-      current_country, 
-      as.character(current_year), 
+      "data/LPA",
+      current_country,
+      as.character(current_year),
       paste0("c_prob_", current_country, "_", current_year, "_", class_solution, ".csv")
     )
     
@@ -1082,7 +1068,7 @@ multi_lvl_data_sy <- bind_rows(df_list)
 library(tidyr)
 
 ## HDR containing Gender Inequality Index and Human Development Index
-hdr <- read.csv("data\Indices Data\HDR25_Composite_indices_complete_time_series.csv") %>%
+hdr <- read.csv("data/Indices Data/HDR25_Composite_indices_complete_time_series.csv") %>%
   select(country, hdi_2002, hdi_2006, hdi_2010, hdi_2014, hdi_2018,
                   ihdi_2010, ihdi_2014, ihdi_2018, 
                   gii_2002, gii_2006, gii_2010, gii_2014, gii_2018) %>%
@@ -1111,7 +1097,7 @@ multi_lvl_data_sy <- multi_lvl_data_sy %>%
                    "surveyyear" = "year"))
 
 ## GINI
-gini <- read.csv("data\Indices Data\swiid9_9_summary.csv")
+gini <- read.csv("data/Indices Data/swiid9_9_summary.csv")
 
 multi_lvl_data_sy <- multi_lvl_data_sy %>%
   select(-countryname_merge) %>%        # unselect previous country merging column
@@ -1129,7 +1115,7 @@ multi_lvl_data_sy <- multi_lvl_data_sy %>%
                    "surveyyear" = "year"))
 
 ## GDP
-gdp <- read.csv("data\Indices Data\API_NY.GDP.MKTP.PP.KD_DS2_en_csv_v2_5354.csv", skip = 4) %>% 
+gdp <- read.csv("data/Indices Data/API_NY.GDP.MKTP.PP.KD_DS2_en_csv_v2_5354.csv", skip = 4) %>% 
   select(Country.Name, X2002, X2006, X2010, X2014, X2018) %>%
   pivot_longer(
     cols = -Country.Name,
@@ -1160,7 +1146,7 @@ multi_lvl_data_sy <- multi_lvl_data_sy %>%
 ## Manually clean labels for merger with multi level data
 
 # Load labels
-data_path = file.path(Sys.getenv("USERPROFILE"), "OneDrive - Universität Zürich UZH", "Datenanalyse", "hbsc_labels.xlsx")
+data_path = "data/hbsc_labels.xlsx"
 hbsc_labels <- read_excel(data_path)
 
 # # Check unique labels in each column
@@ -1194,15 +1180,15 @@ multi_lvl_data_sy <- multi_lvl_data_sy %>%
   select(ID, countryname, surveyyear, ClassSolution, sex, age, fas, lifesat, ache, feeling, health, PHY, SLE, UND, SM, ALC, C, Label, hdi, ihdi, gii, gini_disp, gdp)
 
 # Write .csv file
-write.csv(multi_lvl_data_sy, "hbsc_mlvl_data_per_sy.csv")
+write.csv(multi_lvl_data_sy, "data/hbsc_mlvl_data_per_sy.csv")
 
 ### Multilevel analysis data processing (on overall basis)
 
-data_path = file.path(Sys.getenv("USERPROFILE"), "OneDrive - Universität Zürich UZH", "Datenanalyse", "hbsc_labels.xlsx")
+data_path = "data/hbsc_labels.xlsx"
 hbsc_labels <- read_excel(data_path)
 
 class_solution <- hbsc_labels$ClassSolution
-hbsc_variables <- read.csv("C:/Users/hanst/OneDrive - Universität Zürich UZH/Datenanalyse/hbsc_variables.csv")
+hbsc_variables <- read.csv("data/hbsc_variables.csv")
 hbsc_variables <- tibble::rowid_to_column(hbsc_variables, "ID")
 
 # Initialize empty list to store data frames
@@ -1222,11 +1208,8 @@ for (current_country in unique_countries) {
   
   # Construct filepath
   filepath <- file.path(
-    Sys.getenv("USERPROFILE"), 
-    "OneDrive - Universität Zürich UZH", 
-    "Datenanalyse",
-    "LPA ID",
-    current_country, 
+    "data/LPA",
+    current_country,
     paste0("c_prob_", current_country, "_", class_solution, ".csv")
   )
   
@@ -1262,7 +1245,7 @@ multi_lvl_data_ovr <- bind_rows(df_list)
 ### Multilevel indices
 
 ## HDR containing Gender Inequality Index and Human Development Index
-hdr <- read.csv("data\Indices Data\HDR25_Composite_indices_complete_time_series.csv") %>%
+hdr <- read.csv("data/Indices Data/HDR25_Composite_indices_complete_time_series.csv") %>%
   select(country, hdi_2002, hdi_2006, hdi_2010, hdi_2014, hdi_2018,
          ihdi_2010, ihdi_2014, ihdi_2018, 
          gii_2002, gii_2006, gii_2010, gii_2014, gii_2018) %>%
@@ -1291,7 +1274,7 @@ multi_lvl_data_ovr <- multi_lvl_data_ovr %>%
                    "surveyyear" = "year"))
 
 ## GINI
-gini <- read.csv("data\Indices Data\swiid9_9_summary.csv")
+gini <- read.csv("data/Indices Data/swiid9_9_summary.csv")
 
 multi_lvl_data_ovr <- multi_lvl_data_ovr %>%
   select(-countryname_merge) %>%        # unselect previous country merging column
@@ -1309,7 +1292,7 @@ multi_lvl_data_ovr <- multi_lvl_data_ovr %>%
                    "surveyyear" = "year"))
 
 ## GDP
-gdp <- read.csv("data\Indices Data\API_NY.GDP.MKTP.PP.KD_DS2_en_csv_v2_5354.csv", skip = 4) %>% 
+gdp <- read.csv("data/Indices Data/API_NY.GDP.MKTP.PP.KD_DS2_en_csv_v2_5354.csv", skip = 4) %>% 
   select(Country.Name, X2002, X2006, X2010, X2014, X2018) %>%
   pivot_longer(
     cols = -Country.Name,
@@ -1340,7 +1323,7 @@ multi_lvl_data_ovr <- multi_lvl_data_ovr %>%
 ## Manually clean labels for merger with multi level data
 
 # Load labels
-data_path = file.path(Sys.getenv("USERPROFILE"), "OneDrive - Universität Zürich UZH", "Datenanalyse", "hbsc_labels.xlsx")
+data_path = "data/hbsc_labels.xlsx"
 hbsc_labels <- read_excel(data_path)
 
 # # Check unique labels in each column
@@ -1372,4 +1355,4 @@ multi_lvl_data_ovr <- multi_lvl_data_ovr %>%
   select(ID, countryname, surveyyear, ClassSolution, sex, age, fas, lifesat, ache, feeling, health, PHY, SLE, UND, SM, ALC, C, Label, hdi, ihdi, gii, gini_disp, gdp)
 
 # Write .csv file
-write.csv(multi_lvl_data_ovr, "hbsc_mlvl_data_ovr.csv")
+write.csv(multi_lvl_data_ovr, "data/hbsc_mlvl_data_ovr.csv")

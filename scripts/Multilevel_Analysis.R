@@ -11,7 +11,7 @@ library(parameters)
 
 ## PREPARATION ------------------------------------------------------------
 
-df <- read.csv("hbsc_mlvl_data_per_sy.csv")
+df <- read.csv("data/hbsc_mlvl_data_per_sy.csv")
 
 df <- df %>%
   mutate(

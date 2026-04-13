@@ -1809,7 +1809,7 @@ ui <- fluidPage(
   
   includeCSS("www/uzh_styles.css"),
   
-  titlePanel("Bechtiger & Janousch (2025): Adolescent Well-Being in Flux"),
+  titlePanel("Bechtiger & Janousch (2026): Adolescent Well-Being in Flux"),
   
   # Navigation bar for different pages
   navbarPage("Menu", selected = "Map",

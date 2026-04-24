@@ -110,7 +110,7 @@ country_names = unique(lpa_data$countryname)
 
 
 # Create LPA results directory or different directory. Keep name short to avoid 90-character limit issue
-LPA_dir <- "LPA"
+LPA_dir <- "data/LPA"
 if (!dir.exists(LPA_dir)) {
   dir.create(LPA_dir)
 }

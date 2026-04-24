@@ -513,6 +513,8 @@ batch_process_mplus_files <- function(base_lpa_path, hbsc_labels) {
 
 # Set your base LPA directory path
 base_lpa_path <- "data/LPA"
+data_path = "data/hbsc_labels.xlsx"
+hbsc_labels <- read_excel(data_path)
 
 # Run the batch processing with hbsc_labels
 batch_process_mplus_files(base_lpa_path, hbsc_labels)

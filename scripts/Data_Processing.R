@@ -14,11 +14,11 @@ library(readxl)
 # NOTE: The raw HBSC data files (.sav) are not included in this repository.
 # Access to the data must be requested from the HBSC Data Management Centre.
 # Once obtained, place the files in the working directory and update the paths below.
-hbsc01 <- read_sav("HBSC2001OAed1.0_F4.sav")
-hbsc06 <- read_sav("HBSC2006OAed1.0_F1.sav")
-hbsc10 <- read_sav("HBSC2010OAed1.0_F4.sav")
-hbsc14 <- read_sav("HBSC2014OAed1.1_F1.sav")
-hbsc18 <- read_sav("HBSC2018OAed1.1.sav")
+hbsc01 <- read_sav("../data/HBSC2001OAed1.0_F4.sav")
+hbsc06 <- read_sav("../data/HBSC2006OAed1.0_F1.sav")
+hbsc10 <- read_sav("../data/HBSC2010OAed1.0_F4.sav")
+hbsc14 <- read_sav("../data/HBSC2014OAed1.1_F1.sav")
+hbsc18 <- read_sav("../data/HBSC2018OAed1.1.sav")
 
 ### Rename
 hbsc10 <- hbsc10 %>%

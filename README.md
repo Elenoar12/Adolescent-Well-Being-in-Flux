@@ -1,6 +1,19 @@
 # Adolescent Well-Being in Flux
 
-This repository contains the analysis code and interactive web application accompanying the study by Bechtiger & Janousch (2025), examining trends in adolescent health-risk behaviours and mental distress across 44 countries using data from the Health Behaviour in School-Aged Children (HBSC) study (2002–2018).
+This repository contains the analysis code and interactive web application accompanying the study by Bechtiger & Janousch (2026), examining trends in adolescent health-risk behaviours and mental distress across 44 countries using data from the Health Behaviour in School-Aged Children (HBSC) study (2002–2018).
+
+## Data
+The HBSC data used in this project are not publicly available and are not included in this repository. Access can be requested via [www.hbsc.org](http://www.hbsc.org).
+
+Indices data for multilevel analysis was acquired from the following sources:
+
+- HDI: https://hdr.undp.org/data-center/documentation-and-downloads
+
+- GINI: https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/LM4OWF
+
+- GDP: https://data.worldbank.org/indicator/NY.GDP.MKTP.PP.KD
+
+---
 
 ## Scripts
 
@@ -158,7 +171,7 @@ Data_Visualization.R
 ---
 
 ### `app.R`
-Shiny web application for interactive exploration of study findings.
+Shiny web application for interactive exploration of study findings. Run app.R from root to display locally hosted webapp. [https://elenoar12-bechtiger-janousch-2026-companion-app.share.connect.posit.cloud/](Link to Companion App)
 
 ```
 app.R
@@ -180,6 +193,3 @@ app.R
 ```
 
 ---
-
-## Data
-The HBSC data used in this project are not publicly available and are not included in this repository. Access can be requested via [www.hbsc.org](http://www.hbsc.org).

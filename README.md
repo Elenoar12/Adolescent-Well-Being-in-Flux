@@ -171,7 +171,7 @@ Data_Visualization.R
 ---
 
 ### `app.R`
-Shiny web application for interactive exploration of study findings. Run app.R from root to display locally hosted webapp. [https://elenoar12-bechtiger-janousch-2026-companion-app.share.connect.posit.cloud/](Link to Companion App)
+Shiny web application for interactive exploration of study findings. Run app.R from root to display locally hosted webapp. [Link to Companion App](https://elenoar12-bechtiger-janousch-2026-companion-app.share.connect.posit.cloud/)
 
 ```
 app.R

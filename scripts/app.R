@@ -1835,8 +1835,11 @@ ui <- fluidPage(
                           <hr style='margin: 24px 0;'>
 
                           <h4 style='margin-top:20px; margin-bottom:8px;'>Associated Publications</h4>
-                          <p><a href='https://github.com/Elenoar12/Adolescent-Well-Being-in-Flux' target='_blank'>Github Project Repository</a></p>
-
+                          <ul style='margin-top:8px; padding-left:20px; line-height:1.8;'>
+                            <li>Bechtiger L, Thalathara H, Bürgin D, Eggenberger L and Janousch C (2026) Examining Secular Changes in Health Risk Behavior Profiles and Their Associations With Mental Distress During Adolescence. Int. J. Public Health 71:1609345. doi: <a href='https://doi.org/10.3389/ijph.2026.1609345' target='_blank'>10.3389/ijph.2026.1609345</a></li>
+                            <li><a href='https://github.com/Elenoar12/Adolescent-Well-Being-in-Flux' target='_blank'>Github Project Repository</a></li>
+                          </ul>
+                          
                           <hr style='margin: 24px 0;'>
 
                           <p>This research project was supported by a <a href='https://www.prc.uzh.ch/en/research/seedgrants.html' target='_blank'>Seed Grant</a> from the UZH Population Research Center.</p>
